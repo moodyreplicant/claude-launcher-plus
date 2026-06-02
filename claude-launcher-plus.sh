@@ -49,7 +49,7 @@ NC='\033[0m'   # No Color
 ensure_onboarding_done() {
     if [[ ! -f "$CLAUDE_JSON" ]]; then
         echo '{"hasCompletedOnboarding": true}' > "$CLAUDE_JSON"
-    elif ! grep -q '"hasCompletedOnboarding"' "$CLAUDE_JSON" 2>/dev/null; then
+    elif ! grep -q '"hasCompletedOnboarding"' "$CLAUDE_JSON"; then
         local tmp=$(mktemp)
         python3 -c "
 import json, sys
@@ -58,7 +58,7 @@ with open('$CLAUDE_JSON') as f:
 d['hasCompletedOnboarding'] = True
 with open('$tmp', 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null && mv "$tmp" "$CLAUDE_JSON"
+" && mv "$tmp" "$CLAUDE_JSON"
     fi
 }
 
@@ -72,14 +72,14 @@ check_lm_studio() {
 
 get_lm_studio_models() {
     local response
-    response=$(curl -s --connect-timeout 2 "$LM_STUDIO_URL/api/v0/models" 2>/dev/null) || return 1
+    response=$(curl -s --connect-timeout 2 "$LM_STUDIO_URL/api/v0/models") || return 1
     python3 -c "
 import json, sys
 data = json.loads(sys.stdin.read())
 for m in data.get('data', []):
     if m.get('state') == 'loaded' and m.get('type') == 'llm':
         print(m.get('id', 'unknown'))
-" 2>/dev/null <<<"$response"
+" <<<"$response"
 }
 
 pick_lm_studio_model() {
@@ -130,7 +130,7 @@ if os.path.exists(path):
 d.clear()
 with open(path, 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null
+"
     unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
 
     # Verify LM Studio is running
@@ -203,7 +203,7 @@ env['CLAUDE_CODE_ATTRIBUTION_HEADER'] = '0'
 env.pop('ANTHROPIC_AUTH_TOKEN', None)
 with open(path, 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null
+"
 
     echo -e "  ${GREEN}Launching Claude Code → LM Studio${NC}"
     echo -e "  ─────────────────────────────────"
@@ -230,7 +230,7 @@ if os.path.exists(path):
 d.clear()
 with open(path, 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null
+"
     unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
     rm -f "$HOME/.claude/api-key-helper.sh"
 
@@ -259,7 +259,7 @@ if os.path.exists(path):
 d.clear()
 with open(path, 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null
+"
     unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
     rm -f "$HOME/.claude/api-key-helper.sh"
 
@@ -280,7 +280,7 @@ try:
 except Exception as e:
     sys.stderr.write(str(e))
     sys.exit(1)
-" 2>/dev/null)
+")
 
     if [[ -z "$providers" ]]; then
         echo -e "${RED}No valid providers found in configuration.${NC}"
@@ -347,8 +347,8 @@ print(json.dumps({'env': base_env}))
 
         # Apply provider config
         python3 -c "
-import json, os
-cfg = json.loads('$selected_cfg')
+import json, os, sys
+cfg = json.loads(sys.argv[1])
 for k,v in cfg.get('env', {}).items():
     os.environ[k] = str(v)
 path = '$CLAUDE_SETTINGS'
@@ -358,11 +358,14 @@ if os.path.exists(path):
         with open(path) as f: d=json.load(f)
     except: pass
 d.pop('apiKeyHelper', None)          # remove local auth helper
+d.pop('ANTHROPIC_AUTH_TOKEN', None)
 env = d.setdefault('env', {})
 for k,v in cfg.get('env', {}).items():
     env[k] = str(v)
+env.pop('ANTHROPIC_AUTH_TOKEN', None)
 with open(path,'w') as f: json.dump(d,f,indent=2)
-" 2>/dev/null
+" "$selected_cfg"
+
 
         # ── Export provider env vars before launch ─────────────────────
         while IFS='=' read -r k v; do
