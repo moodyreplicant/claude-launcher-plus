@@ -10,7 +10,27 @@
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
         "CLAUDE_CODE_EFFORT_LEVEL": "max"
-      }
+      },
+      "models": [
+        {
+          "name": "Deepseek V4 Pro (1M ctx)",
+          "env": {
+            "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]"
+          }
+        },
+        {
+          "name": "Deepseek V4 Flash (1M ctx)",
+          "env": {
+            "ANTHROPIC_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]"
+          }
+        }
+      ]
     },
     "OpenRouter": {
       "env": {

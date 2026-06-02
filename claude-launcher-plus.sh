@@ -23,8 +23,10 @@ set -euo pipefail
 # CONFIGURATION SECTION
 # ------------------------------------------------------------------
 
-LM_STUDIO_URL="http://localhost:1234"          # LM Studio server
-LM_STUDIO_API_KEY="lm-studio"                  # API key used by the apiKeyHelper
+LM_STUDIO_HOST="${LM_STUDIO_HOST:-localhost}"
+LM_STUDIO_PORT="${LM_STUDIO_PORT:-1234}"
+LM_STUDIO_URL="http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}"
+LM_STUDIO_API_KEY="${LM_STUDIO_API_KEY:-lm-studio}"
 LOCAL_MODEL=""                                 # Optional: pre‑select a model
 
 CLAUDE_JSON="$HOME/.claude.json"               # Claude onboarding flag
@@ -253,16 +255,20 @@ except Exception as e:
         provider_list+=("$name")
     done <<< "$providers"
 
-    echo -e "Available providers:"
-    for i in "${!provider_list[@]}"; do
-        echo -e "  ${BOLD}$((i+1)))${NC}  ${provider_list[$i]}"
-    done
-    echo ""
-
-    read -rp "Choose provider [1-${#provider_list[@]}]: " choice
+    local choice=1 selected_name selected_cfg
+    if [[ ${#provider_list[@]} -eq 1 ]]; then
+        selected_name="${provider_list[0]}"
+        echo -e "Provider: ${BOLD}${selected_name}${NC} (auto-selected)"
+    else
+        echo -e "Available providers:"
+        for i in "${!provider_list[@]}"; do
+            echo -e "  ${BOLD}$((i+1)))${NC}  ${provider_list[$i]}"
+        done
+        echo ""
+        read -rp "Choose provider [1-${#provider_list[@]}]: " choice
+    fi
     if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#provider_list[@]} )); then
-        local selected_name="${provider_list[$((choice-1))]}"
-        local selected_cfg
+        selected_name="${provider_list[$((choice-1))]}"
         while IFS='|' read -r name cfg; do
             [[ "$name" == "$selected_name" ]] && { selected_cfg="$cfg"; break; }
         done <<< "$providers"
@@ -282,13 +288,17 @@ for i, m in enumerate(cfg.get('models', [])):
                 model_entries+=("$model_name")
             done <<< "$models_output"
 
-            echo -e "Available models for ${BOLD}$selected_name${NC}:"
-            for i in "${!model_entries[@]}"; do
-                echo -e "  ${BOLD}$((i+1)))${NC}  ${model_entries[$i]}"
-            done
-            echo ""
-
-            read -rp "Choose model [1-${#model_entries[@]}]: " model_choice
+            local model_choice=1
+            if [[ ${#model_entries[@]} -eq 1 ]]; then
+                echo -e "Model: ${BOLD}${model_entries[0]}${NC} (auto-selected)"
+            else
+                echo -e "Available models for ${BOLD}$selected_name${NC}:"
+                for i in "${!model_entries[@]}"; do
+                    echo -e "  ${BOLD}$((i+1)))${NC}  ${model_entries[$i]}"
+                done
+                echo ""
+                read -rp "Choose model [1-${#model_entries[@]}]: " model_choice
+            fi
             if [[ "$model_choice" =~ ^[0-9]+$ ]] && (( model_choice >= 1 && model_choice <= ${#model_entries[@]} )); then
                 selected_cfg=$(python3 -c "
 import json, sys
@@ -483,14 +493,63 @@ case "${1:-}" in
     cloud)   shift; launch_cloud "$@" ;;
     custom)  shift; launch_custom "$@" ;;
     status)  show_status ;;
+    list-providers)
+        if [[ ! -f "$CUSTOM_PROVIDERS_FILE" ]]; then
+            echo "No custom providers configured (missing ~/.claude/providers.json)"
+            exit 1
+        fi
+        python3 -c "
+import json
+with open('$CUSTOM_PROVIDERS_FILE') as f:
+    data = json.load(f)
+for name in data.get('providers', {}):
+    print(name)
+" ;;
+    list-models)
+        target_provider="${2:-}"
+        if [[ -z "$target_provider" ]]; then
+            echo "Usage: $(basename "$0") list-models <provider>"
+            exit 1
+        fi
+        if [[ ! -f "$CUSTOM_PROVIDERS_FILE" ]]; then
+            echo "No custom providers configured (missing ~/.claude/providers.json)"
+            exit 1
+        fi
+        python3 -c "
+import json, sys
+target = sys.argv[1]
+with open('$CUSTOM_PROVIDERS_FILE') as f:
+    data = json.load(f)
+provider = data.get('providers', {}).get(target)
+if not provider:
+    print(f'Provider \"{target}\" not found')
+    sys.exit(1)
+models = provider.get('models', [])
+if not models:
+    print(f'{target}: no models defined (uses provider-level env only)')
+else:
+    for m in models:
+        model_name = m.get('name', 'unknown')
+        model_env = m.get('env', {})
+        model_id = model_env.get('ANTHROPIC_MODEL', 'no ANTHROPIC_MODEL set')
+        print(f'{model_name}  ->  {model_id}')
+" "$target_provider" ;;
     help|-h|--help)
-        echo "Usage: $(basename "$0") [local|cloud|custom|status|help]"
+        echo "Usage: $(basename "$0") [local|cloud|custom|status|list-providers|list-models|help]"
         echo ""
-        echo "  local    Launch Claude Code with LM Studio"
-        echo "  cloud    Launch Claude Code with Anthropic account"
-        echo "  custom   Launch Claude Code with custom provider"
-        echo "  status   Show configuration and LM Studio status"
-        echo "  (none)   Interactive menu"
+        echo "  local           Launch Claude Code with LM Studio"
+        echo "  cloud           Launch Claude Code with Anthropic account"
+        echo "  custom          Launch Claude Code with custom provider"
+        echo "  status          Show configuration and LM Studio status"
+        echo "  list-providers  List configured custom providers"
+        echo "  list-models <p> List available models for a provider"
+        echo "  (none)          Interactive menu"
+        echo ""
+        echo "  Environment:"
+        echo "    LM_STUDIO_HOST    Override LM Studio host (default: localhost)"
+        echo "    LM_STUDIO_PORT    Override LM Studio port (default: 1234)"
+        echo "    LM_STUDIO_API_KEY Override LM Studio API key"
+        echo "    NO_COLOR          Disable colored output"
         ;;
     *)       show_menu ;;
 esac
