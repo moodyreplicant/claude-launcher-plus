@@ -115,6 +115,40 @@ pick_lm_studio_model() {
 }
 
 # ------------------------------------------------------------------
+# STARTUP HELPERS
+# ------------------------------------------------------------------
+
+check_dependencies() {
+    local missing=()
+    for dep in python3 curl claude; do
+        command -v "$dep" &>/dev/null || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo -e "${RED}Missing required dependencies: ${missing[*]}${NC}"
+        return 1
+    fi
+    return 0
+}
+
+reset_settings() {
+    python3 -c "
+import json, os
+path = '$CLAUDE_SETTINGS'
+d = {}
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except: pass
+d.clear()
+with open(path, 'w') as f:
+    json.dump(d, f, indent=2)
+"
+    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
+    rm -f "$HOME/.claude/api-key-helper.sh"
+}
+
+# ------------------------------------------------------------------
 # MODE: LOCAL (LM Studio)
 # ------------------------------------------------------------------
 
@@ -456,39 +490,6 @@ show_menu() {
         q|Q) exit 0 ;;
         *) echo -e "  ${RED}Invalid choice${NC}"; show_menu ;;
     esac
-}
-
-# ── MAIN ENTRY POINT ───────────────────────────────────────────────
-# ------------------------------------------------------------------
-
-check_dependencies() {
-    local missing=()
-    for dep in python3 curl claude; do
-        command -v "$dep" &>/dev/null || missing+=("$dep")
-    done
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        echo -e "${RED}Missing required dependencies: ${missing[*]}${NC}"
-        return 1
-    fi
-    return 0
-}
-
-reset_settings() {
-    python3 -c "
-import json, os
-path = '$CLAUDE_SETTINGS'
-d = {}
-if os.path.exists(path):
-    try:
-        with open(path) as f:
-            d = json.load(f)
-    except: pass
-d.clear()
-with open(path, 'w') as f:
-    json.dump(d, f, indent=2)
-"
-    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
-    rm -f "$HOME/.claude/api-key-helper.sh"
 }
 
 # ------------------------------------------------------------------
