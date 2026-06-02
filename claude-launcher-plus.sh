@@ -19,6 +19,8 @@
 
 set -euo pipefail
 
+VERSION="1.1.0"
+
 # ------------------------------------------------------------------
 # CONFIGURATION SECTION
 # ------------------------------------------------------------------
@@ -149,6 +151,27 @@ check_dependencies() {
     return 0
 }
 
+confirm_launch() {
+    # Only prompt interactively; skip if stdin is not a TTY (e.g. piped / scripted)
+    if [[ ! -t 0 ]]; then
+        return 0
+    fi
+    echo ""
+    echo -e "  ${BOLD}${BLUE}═══ Ready to launch: ${1} ═══${NC}"
+    shift
+    for line in "$@"; do
+        echo -e "  $line"
+    done
+    echo ""
+    local answer
+    read -rp "  Proceed? [Y/n] " answer </dev/tty
+    if [[ "$answer" =~ ^[Nn] ]]; then
+        echo -e "  ${YELLOW}Aborted.${NC}"
+        return 1
+    fi
+    return 0
+}
+
 reset_settings() {
     python3 -c "
 import json, os
@@ -249,6 +272,12 @@ with open(path, 'w') as f:
     json.dump(d, f, indent=2)
 "
 
+    echo ""
+    if ! confirm_launch "Local Mode (LM Studio)" \
+        "  Model:  ${BOLD}${ANTHROPIC_MODEL}${NC}" \
+        "  URL:    ${LM_STUDIO_URL}"; then
+        return 0
+    fi
     echo -e "  ${GREEN}Launching Claude Code → LM Studio${NC}"
     echo -e "  ─────────────────────────────────"
     exec claude "$@"
@@ -263,6 +292,11 @@ launch_cloud() {
     echo ""
 
     reset_settings
+    if ! confirm_launch "Cloud Mode (Anthropic)" \
+        "  Provider: Anthropic API" \
+        "  Auth:     OAuth / Anthropic account"; then
+        return 0
+    fi
     echo -e "  ${GREEN}Launching Claude Code → Anthropic API${NC}"
     echo -e "  ─────────────────────────────────────"
     exec claude "$@"
@@ -280,7 +314,11 @@ launch_custom() {
 
     if [[ ! -f "$CUSTOM_PROVIDERS_FILE" ]]; then
         echo -e "${RED}No custom providers configured.${NC}"
-        echo "Create a $CUSTOM_PROVIDERS_FILE with your provider configurations."
+        echo -e "  Expected config at: ${BOLD}${CUSTOM_PROVIDERS_FILE}${NC}"
+        echo ""
+        echo "  To get started:"
+        echo "    cp providers.json ~/.claude/providers.json"
+        echo "    # Then edit it with your API keys"
         return 1
     fi
 
@@ -317,7 +355,7 @@ except Exception as e:
             echo -e "  ${BOLD}$((i+1)))${NC}  ${provider_list[$i]}"
         done
         echo ""
-        read -rp "Choose provider [1-${#provider_list[@]}]: " choice
+        read -rp "Choose provider [1-${#provider_list[@]}]: " choice </dev/tty
     fi
     if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#provider_list[@]} )); then
         selected_name="${provider_list[$((choice-1))]}"
@@ -340,18 +378,20 @@ for i, m in enumerate(cfg.get('models', [])):
                 model_entries+=("$model_name")
             done <<< "$models_output"
 
-            local model_choice=1
+            local model_choice=1 chosen_model_name=""
             if [[ ${#model_entries[@]} -eq 1 ]]; then
-                echo -e "Model: ${BOLD}${model_entries[0]}${NC} (auto-selected)"
+                chosen_model_name="${model_entries[0]}"
+                echo -e "Model: ${BOLD}${chosen_model_name}${NC} (auto-selected)"
             else
                 echo -e "Available models for ${BOLD}$selected_name${NC}:"
                 for i in "${!model_entries[@]}"; do
                     echo -e "  ${BOLD}$((i+1)))${NC}  ${model_entries[$i]}"
                 done
                 echo ""
-                read -rp "Choose model [1-${#model_entries[@]}]: " model_choice
+                read -rp "Choose model [1-${#model_entries[@]}]: " model_choice </dev/tty
             fi
             if [[ "$model_choice" =~ ^[0-9]+$ ]] && (( model_choice >= 1 && model_choice <= ${#model_entries[@]} )); then
+                chosen_model_name="${model_entries[$((model_choice-1))]}"
                 selected_cfg=$(python3 -c "
 import json, sys
 cfg = json.loads(sys.argv[1])
@@ -397,6 +437,18 @@ for k, v in env_dict.items():
             export "$k=$v"
         done <<< "$env_output"
 
+        if [[ -n "${chosen_model_name:-}" ]]; then
+            if ! confirm_launch "Custom Provider (${selected_name})" \
+                "  Provider: ${BOLD}${selected_name}${NC}" \
+                "  Model:    ${BOLD}${chosen_model_name}${NC}"; then
+                return 0
+            fi
+        else
+            if ! confirm_launch "Custom Provider (${selected_name})" \
+                "  Provider: ${BOLD}${selected_name}${NC}"; then
+                return 0
+            fi
+        fi
         echo -e "  ${GREEN}Launched with custom provider: $selected_name${NC}"
         echo -e "  ─────────────────────────────────────"
         exec claude "$@"
@@ -428,6 +480,28 @@ show_status() {
         echo -e "  Onboarding: ${YELLOW}not set${NC}"
     fi
 
+    echo ""
+    echo -e "  ${BOLD}Custom Providers:${NC}"
+    if [[ -f "$CUSTOM_PROVIDERS_FILE" ]]; then
+        python3 -c "
+import json
+with open('$CUSTOM_PROVIDERS_FILE') as f:
+    data = json.load(f)
+providers = data.get('providers', {})
+if not providers:
+    print('    (no providers defined)')
+for name, cfg in providers.items():
+    model_count = len(cfg.get('models', []))
+    base_url = cfg.get('env', {}).get('ANTHROPIC_BASE_URL', 'not set')
+    line = f'    {name}  →  {base_url}'
+    if model_count > 0:
+        line += f'  ({model_count} models)'
+    print(line)
+"
+    else
+        echo -e "    ${YELLOW}none configured${NC}  (create ${CUSTOM_PROVIDERS_FILE})"
+    fi
+
     if [[ -f "$CLAUDE_SETTINGS" ]] && grep -q '"apiKeyHelper"' "$CLAUDE_SETTINGS"; then
         echo -e "  Auth:       ${YELLOW}apiKeyHelper (local mode)${NC}"
     elif [[ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]]; then
@@ -448,31 +522,33 @@ show_status() {
 # ------------------------------------------------------------------
 
 show_menu() {
-    echo ""
-    echo -e "${BOLD}┌─────────────────────────────────────┐${NC}"
-    echo -e "${BOLD}│     Claude Code Launcher  🚀        │${NC}"
-    echo -e "${BOLD}└─────────────────────────────────────┘${NC}"
-    echo ""
+    while true; do
+        echo ""
+        echo -e "${BOLD}┌─────────────────────────────────────┐${NC}"
+        echo -e "${BOLD}│     Claude Code Launcher  🚀        │${NC}"
+        echo -e "${BOLD}└─────────────────────────────────────┘${NC}"
+        echo ""
 
-    print_lm_studio_status
+        print_lm_studio_status
 
-    echo ""
-    echo -e "  ${BOLD}1)${NC}  🖥  Local mode (LM Studio)"
-    echo -e "  ${BOLD}2)${NC}  ☁️  Cloud mode (Anthropic)"
-    echo -e "  ${BOLD}3)${NC}  🔧 Custom provider"
-    echo -e "  ${BOLD}4)${NC}  📊 Status (LM Studio)"
-    echo -e "  ${BOLD}q)${NC}  Exit"
-    echo ""
-    read -rp "  Choose [1/2/3/4/q]: " choice
+        echo ""
+        echo -e "  ${BOLD}1)${NC}  🖥  Local mode (LM Studio)"
+        echo -e "  ${BOLD}2)${NC}  ☁️  Cloud mode (Anthropic)"
+        echo -e "  ${BOLD}3)${NC}  🔧 Custom provider"
+        echo -e "  ${BOLD}4)${NC}  📊 Status (LM Studio)"
+        echo -e "  ${BOLD}q)${NC}  Exit"
+        echo ""
+        read -rp "  Choose [1/2/3/4/q]: " choice
 
-    case "$choice" in
-        1) launch_local ;;
-        2) launch_cloud ;;
-        3) launch_custom ;;
-        4) show_status ;;
-        q|Q) exit 0 ;;
-        *) echo -e "  ${RED}Invalid choice${NC}"; show_menu ;;
-    esac
+        case "$choice" in
+            1) launch_local ;;
+            2) launch_cloud ;;
+            3) launch_custom ;;
+            4) show_status ;;
+            q|Q) exit 0 ;;
+            *) echo -e "  ${RED}Invalid choice${NC}" ;;
+        esac
+    done
 }
 
 # ------------------------------------------------------------------
@@ -527,6 +603,9 @@ else:
         model_id = model_env.get('ANTHROPIC_MODEL', 'no ANTHROPIC_MODEL set')
         print(f'{model_name}  ->  {model_id}')
 " "$target_provider" ;;
+    --version|-V)
+        echo "claude-launcher-plus v${VERSION}"
+        ;;
     help|-h|--help)
         echo "Usage: $(basename "$0") [local|cloud|custom|status|list-providers|list-models|help]"
         echo ""
@@ -536,6 +615,7 @@ else:
         echo "  status          Show configuration and LM Studio status"
         echo "  list-providers  List configured custom providers"
         echo "  list-models <p> List available models for a provider"
+        echo "  --version, -V    Print version and exit"
         echo "  (none)          Interactive menu"
         echo ""
         echo "  Environment:"
