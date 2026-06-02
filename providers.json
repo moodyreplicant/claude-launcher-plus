@@ -23,21 +23,21 @@
       },
       "models": [
         {
-          "name": "Claude 3.5 Sonnet",
+          "name": "NVIDIA: Nemotron 3 Super (free)",
           "env": {
-            "ANTHROPIC_MODEL": "anthropic/claude-3.5-sonnet"
+            "ANTHROPIC_MODEL": "nvidia/nemotron-3-super-120b-a12b:free"
           }
         },
         {
-          "name": "GPT-4o",
+          "name": "Poolside: Laguna M.1 (free)",
           "env": {
-            "ANTHROPIC_MODEL": "openai/gpt-4o"
+            "ANTHROPIC_MODEL": "poolside/laguna-m.1:free"
           }
         },
         {
-          "name": "Gemini 2.5 Pro",
+          "name": "OpenAI: gpt-oss-120b (free)",
           "env": {
-            "ANTHROPIC_MODEL": "google/gemini-2.5-pro-exp-03-25:free"
+            "ANTHROPIC_MODEL": "openai/gpt-oss-120b:free"
           }
         }
       ]
