@@ -368,38 +368,34 @@ print(json.dumps({'env': base_env}))
         fi
         # ───────────────────────────────────────────────────────────────
 
-        # Apply provider config
-        python3 -c "
+        # Apply provider config and export env vars
+        local env_output
+        env_output=$(python3 -c "
 import json, os, sys
 cfg = json.loads(sys.argv[1])
-for k,v in cfg.get('env', {}).items():
+env_dict = cfg.get('env', {})
+for k, v in env_dict.items():
     os.environ[k] = str(v)
 path = '$CLAUDE_SETTINGS'
-d={}
+d = {}
 if os.path.exists(path):
     try:
-        with open(path) as f: d=json.load(f)
+        with open(path) as f: d = json.load(f)
     except: pass
-d.pop('apiKeyHelper', None)          # remove local auth helper
+d.pop('apiKeyHelper', None)
 d.pop('ANTHROPIC_AUTH_TOKEN', None)
-env = d.setdefault('env', {})
-for k,v in cfg.get('env', {}).items():
-    env[k] = str(v)
-env.pop('ANTHROPIC_AUTH_TOKEN', None)
-with open(path,'w') as f: json.dump(d,f,indent=2)
-" "$selected_cfg"
+d_env = d.setdefault('env', {})
+for k, v in env_dict.items():
+    d_env[k] = str(v)
+d_env.pop('ANTHROPIC_AUTH_TOKEN', None)
+with open(path, 'w') as f: json.dump(d, f, indent=2)
+for k, v in env_dict.items():
+    print(f'{k}={v}')
+" "$selected_cfg")
 
-
-        # ── Export provider env vars before launch ─────────────────────
         while IFS='=' read -r k v; do
             export "$k=$v"
-        done < <(python3 -c "
-import json, sys
-cfg = json.loads(sys.argv[1])
-for k, v in cfg.get('env', {}).items():
-    print(f'{k}={v}')
-" "$selected_cfg" || true)
-        # ───────────────────────────────────────────────────────────────
+        done <<< "$env_output"
 
         echo -e "  ${GREEN}Launched with custom provider: $selected_name${NC}"
         echo -e "  ─────────────────────────────────────"
