@@ -42,7 +42,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 ### Quick Install (recommended)
 
 ```bash
-git clone https://github.com/<user>/claude-launcher-plus.git
+git clone https://github.com/moodyreplicant/claude-launcher-plus.git
 cd claude-launcher-plus
 ./install.sh
 ```
@@ -51,7 +51,7 @@ cd claude-launcher-plus
 
 ```bash
 # Download the script
-curl -O https://raw.githubusercontent.com/<user>/claude-launcher-plus/main/claude-launcher-plus.sh
+curl -O https://raw.githubusercontent.com/moodyreplicant/claude-launcher-plus/main/claude-launcher-plus.sh
 
 # Make executable
 chmod +x claude-launcher-plus.sh
