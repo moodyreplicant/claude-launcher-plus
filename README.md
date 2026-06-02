@@ -44,7 +44,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 ```bash
 git clone https://github.com/moodyreplicant/claude-launcher-plus.git
 cd claude-launcher-plus
-./install.sh
+./install.sh   # installs to ~/.local/bin/claude-launcher-plus
 ```
 
 ### Manual Install
@@ -200,13 +200,18 @@ claude-launcher-plus custom "Explain this file"
 ## Uninstall
 
 ```bash
-# Remove the script
-rm "$(which claude-launcher-plus)"      # if installed to PATH
-# or simply delete wherever you placed it
-
-# Remove provider config (optional)
-rm ~/.claude/providers.json
+# Run the uninstaller from the cloned repository
+cd claude-launcher-plus
+./uninstall.sh
 ```
+
+The uninstaller will:
+- Confirm before removing `~/.local/bin/claude-launcher-plus`
+- Offer to remove `~/.claude/providers.json` (your provider config)
+- Offer to clean up the PATH entry added by the installer
+- Leave Claude Code's own files (`~/.claude/settings.json`) untouched
+
+To uninstall manually, delete the script from wherever you placed it and optionally remove `~/.claude/providers.json`.
 
 ---
 
