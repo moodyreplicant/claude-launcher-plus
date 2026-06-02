@@ -63,22 +63,20 @@ mv claude-launcher-plus.sh /usr/local/bin/claude-launcher-plus   # macOS/Linux
 
 ### Add a Shell Alias (no PATH changes needed)
 
-Add this line to your shell config to run `claude-launcher-plus` from any terminal:
+Add this line to your shell config to run `clp` from any terminal:
 
 ```bash
 # For zsh (macOS default) — add to ~/.zshrc
-echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.zshrc
+echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.zshrc
 source ~/.zshrc
 
 # For bash — add to ~/.bashrc or ~/.bash_profile
-echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.bashrc
+echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.bashrc
 source ~/.bashrc
 
 # For fish — add to ~/.config/fish/config.fish
-echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.config/fish/config.fish
+echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.config/fish/config.fish
 ```
-
-Replace `$HOME/path/to/` with wherever you placed the script (e.g., `~/claude-launcher-plus`).
 
 ---
 
@@ -155,33 +153,24 @@ Edit `~/.claude/providers.json` with your API keys:
 ### Interactive Menu
 
 ```bash
-./claude-launcher-plus.sh
+clp
 ```
 
 ### CLI Commands
 
 ```bash
 # Launch modes
-claude-launcher-plus local          # LM Studio
-claude-launcher-plus cloud          # Anthropic OAuth
-claude-launcher-plus custom         # Custom provider (with model picker)
+clp local          # LM Studio
+clp cloud          # Anthropic OAuth
+clp custom         # Custom provider (with model picker)
 
 # Status & discovery
-claude-launcher-plus status         # Show config + LM Studio status
-claude-launcher-plus list-providers     # List configured providers
-claude-launcher-plus list-models OpenRouter    # List models for a provider
+clp status         # Show config + LM Studio status
+clp list-providers     # List configured providers
+clp list-models OpenRouter    # List models for a provider
 
 # Help
-claude-launcher-plus help
-```
-
-### Pass Arguments to Claude Code
-
-All arguments after the mode are forwarded to `claude`:
-
-```bash
-claude-launcher-plus local --verbose
-claude-launcher-plus custom "Explain this file"
+clp help
 ```
 
 ---

@@ -143,10 +143,10 @@ else
             echo "  echo 'export PATH=\"$PREFIX:\$PATH\"' >> $SHELL_RC"
         fi
     elif [[ -z "$SHELL_RC" ]]; then
-        echo "Could not detect your shell. Add $PREFIX to your PATH to use 'claude-launcher-plus' from anywhere."
+        echo "Could not detect your shell. Add $PREFIX to your PATH to use 'clp' from anywhere."
     else
         # Non-interactive (piped) — print instructions
-        echo "Add $PREFIX to your PATH to use 'claude-launcher-plus' from anywhere:"
+        echo "Add $PREFIX to your PATH to use 'clp' from anywhere:"
         echo "  echo 'export PATH=\"$PREFIX:\$PATH\"' >> $SHELL_RC"
     fi
 fi
