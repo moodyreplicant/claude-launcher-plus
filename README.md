@@ -5,6 +5,16 @@
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
 
+### Why This Exists
+
+Claude Code normally requires an Anthropic API key or OAuth login. The original [claude-code-offline-local-models](https://www.gui.codes/articles/claude-code-offline-local-models) guide by [@gmotzespina](https://github.com/gmotzespina) showed how to redirect Claude Code to a local LM Studio instance — unlocking offline use and freedom from API rate limits.
+
+**Claude Code Launcher Plus** builds on that foundation, adding:
+- A unified menu for local, cloud, and custom provider modes
+- Static model selection so you can switch between multiple models per provider without editing files
+- DeepSeek and OpenRouter support out of the box
+- CLI subcommands for scripting and automation
+
 ---
 
 ## What It Does
@@ -50,6 +60,25 @@ chmod +x claude-launcher-plus.sh
 mv claude-launcher-plus.sh /usr/local/bin/claude-launcher-plus   # macOS/Linux
 # or: mv claude-launcher-plus.sh ~/.local/bin/claude-launcher-plus
 ```
+
+### Add a Shell Alias (no PATH changes needed)
+
+Add this line to your shell config to run `claude-launcher-plus` from any terminal:
+
+```bash
+# For zsh (macOS default) — add to ~/.zshrc
+echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.zshrc
+source ~/.zshrc
+
+# For bash — add to ~/.bashrc or ~/.bash_profile
+echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.bashrc
+source ~/.bashrc
+
+# For fish — add to ~/.config/fish/config.fish
+echo 'alias claude-launcher-plus="$HOME/path/to/claude-launcher-plus.sh"' >> ~/.config/fish/config.fish
+```
+
+Replace `$HOME/path/to/` with wherever you placed the script (e.g., `~/claude-launcher-plus`).
 
 ---
 
@@ -212,3 +241,11 @@ chmod +x claude-launcher-plus.sh
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+## Credits
+
+- **[gui.codes](https://www.gui.codes/articles/claude-code-offline-local-models)** — The original blog post that demonstrated how to redirect Claude Code to a local LM Studio server, making offline local models possible
+- **[@gmotzespina](https://github.com/gmotzespina)** — Creator of the original `claude-launcher.sh` script that this project is based on
+- This project extends the original with a unified multi-mode menu, custom provider support, and static model selection
