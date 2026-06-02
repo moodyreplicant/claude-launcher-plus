@@ -42,6 +42,10 @@ RED='\033[0;31m'
 BOLD='\033[1m'
 NC='\033[0m'   # No Color
 
+if [[ -n "${NO_COLOR:-}" ]]; then
+    GREEN='' YELLOW='' BLUE='' RED='' BOLD='' NC=''
+fi
+
 # ------------------------------------------------------------------
 # HELPER FUNCTIONS
 # ------------------------------------------------------------------
@@ -86,7 +90,7 @@ pick_lm_studio_model() {
     local models=()
     while IFS= read -r line; do
         [[ -n "$line" ]] && models+=("$line")
-    done < <(get_lm_studio_models)
+    done < <(get_lm_studio_models || true)
 
     if [[ ${#models[@]} -eq 0 ]]; then
         echo "no model loaded"
@@ -117,21 +121,7 @@ launch_local() {
     echo -e "${BLUE}${BOLD}🖥  Local Mode (LM Studio)${NC}"
     echo ""
 
-    # Clean any stale configuration
-    python3 -c "
-import json, os
-path = '$CLAUDE_SETTINGS'
-d = {}
-if os.path.exists(path):
-    try:
-        with open(path) as f:
-            d = json.load(f)
-    except: pass
-d.clear()
-with open(path, 'w') as f:
-    json.dump(d, f, indent=2)
-"
-    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
+    reset_settings
 
     # Verify LM Studio is running
     if ! check_lm_studio; then
@@ -218,22 +208,7 @@ launch_cloud() {
     echo -e "${BLUE}${BOLD}☁️  Cloud Mode (Anthropic)${NC}"
     echo ""
 
-    python3 -c "
-import json, os
-path = '$CLAUDE_SETTINGS'
-d = {}
-if os.path.exists(path):
-    try:
-        with open(path) as f:
-            d = json.load(f)
-    except: pass
-d.clear()
-with open(path, 'w') as f:
-    json.dump(d, f, indent=2)
-"
-    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
-    rm -f "$HOME/.claude/api-key-helper.sh"
-
+    reset_settings
     echo -e "  ${GREEN}Launching Claude Code → Anthropic API${NC}"
     echo -e "  ─────────────────────────────────────"
     exec claude "$@"
@@ -247,21 +222,7 @@ launch_custom() {
     echo -e "${BLUE}${BOLD}🔧 Custom Provider Mode${NC}"
     echo ""
 
-    python3 -c "
-import json, os
-path = '$CLAUDE_SETTINGS'
-d = {}
-if os.path.exists(path):
-    try:
-        with open(path) as f:
-            d = json.load(f)
-    except: pass
-d.clear()
-with open(path, 'w') as f:
-    json.dump(d, f, indent=2)
-"
-    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
-    rm -f "$HOME/.claude/api-key-helper.sh"
+    reset_settings
 
     if [[ ! -f "$CUSTOM_PROVIDERS_FILE" ]]; then
         echo -e "${RED}No custom providers configured.${NC}"
@@ -375,7 +336,7 @@ import json, sys
 cfg = json.loads(sys.argv[1])
 for k, v in cfg.get('env', {}).items():
     print(f'{k}={v}')
-" "$selected_cfg")
+" "$selected_cfg" || true)
         # ───────────────────────────────────────────────────────────────
 
         echo -e "  ${GREEN}Launched with custom provider: $selected_name${NC}"
@@ -399,7 +360,7 @@ show_status() {
     if check_lm_studio; then
         while IFS= read -r line; do
             [[ -n "$line" ]] && models+=("$line")
-        done < <(get_lm_studio_models)
+        done < <(get_lm_studio_models || true)
     fi
 
     if [[ ${#models[@]} -eq 0 ]]; then
@@ -450,7 +411,7 @@ show_menu() {
     if check_lm_studio; then
         while IFS= read -r line; do
             [[ -n "$line" ]] && models+=("$line")
-        done < <(get_lm_studio_models)
+        done < <(get_lm_studio_models || true)
     fi
 
     if [[ ${#models[@]} -gt 0 ]]; then
@@ -478,9 +439,44 @@ show_menu() {
     esac
 }
 
+# ── MAIN ENTRY POINT ───────────────────────────────────────────────
+# ------------------------------------------------------------------
+
+check_dependencies() {
+    local missing=()
+    for dep in python3 curl claude; do
+        command -v "$dep" &>/dev/null || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo -e "${RED}Missing required dependencies: ${missing[*]}${NC}"
+        return 1
+    fi
+    return 0
+}
+
+reset_settings() {
+    python3 -c "
+import json, os
+path = '$CLAUDE_SETTINGS'
+d = {}
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except: pass
+d.clear()
+with open(path, 'w') as f:
+    json.dump(d, f, indent=2)
+"
+    unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_MODEL CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC ANTHROPIC_AUTH_TOKEN
+    rm -f "$HOME/.claude/api-key-helper.sh"
+}
+
 # ------------------------------------------------------------------
 # MAIN ENTRY POINT
 # ------------------------------------------------------------------
+
+check_dependencies || exit 1
 
 case "${1:-}" in
     local)   shift; launch_local "$@" ;;
