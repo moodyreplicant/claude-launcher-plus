@@ -104,6 +104,7 @@ fi
 # OFFER PATH LINE REMOVAL
 # ------------------------------------------------------------------
 if [[ -n "$SHELL_RC" ]] && [[ -f "$SHELL_RC" ]]; then
+    # Remove PATH entry
     if grep -q "# Added by claude-launcher-plus installer" "$SHELL_RC" 2>/dev/null; then
         echo ""
         read -rp "Remove $PREFIX PATH entry from $SHELL_RC? [y/N] " answer </dev/tty
@@ -112,11 +113,14 @@ if [[ -n "$SHELL_RC" ]] && [[ -f "$SHELL_RC" ]]; then
             if [[ "$(uname)" == "Darwin" ]]; then
                 sed -i '' '/# Added by claude-launcher-plus installer/d' "$SHELL_RC"
                 sed -i '' "\|export PATH=\"$PREFIX:\$PATH\"|d" "$SHELL_RC"
+                sed -i '' "\|alias clp=\"$TARGET\"|d" "$SHELL_RC"
             else
                 sed -i '/# Added by claude-launcher-plus installer/d' "$SHELL_RC"
                 sed -i "\|export PATH=\"$PREFIX:\$PATH\"|d" "$SHELL_RC"
+                sed -i "\|alias clp=\"$TARGET\"|d" "$SHELL_RC"
             fi
             removed+=("PATH entry in $SHELL_RC")
+            removed+=("clp alias in $SHELL_RC")
         else
             kept+=("PATH entry in $SHELL_RC")
         fi

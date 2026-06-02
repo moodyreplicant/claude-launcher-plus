@@ -118,6 +118,28 @@ detect_shell_rc() {
 SHELL_RC=$(detect_shell_rc)
 
 # ------------------------------------------------------------------
+# ALIAS SETUP
+# ------------------------------------------------------------------
+if [[ -t 0 ]] && [[ -n "$SHELL_RC" ]]; then
+    if grep -q "alias clp=" "$SHELL_RC" 2>/dev/null; then
+        echo "clp alias already exists in $SHELL_RC"
+    else
+        read -rp "Add 'clp' alias to $SHELL_RC? [Y/n] " answer </dev/tty
+        if [[ ! "$answer" =~ ^[Nn] ]]; then
+            touch "$SHELL_RC"
+            {
+                echo ""
+                echo "# Added by claude-launcher-plus installer ($(date +%Y-%m-%d))"
+                echo "alias clp=\"$TARGET\""
+            } >> "$SHELL_RC"
+            source "$SHELL_RC" 2>/dev/null || true
+            echo "Added clp alias to $SHELL_RC and applied."
+        fi
+    fi
+fi
+echo ""
+
+# ------------------------------------------------------------------
 # PATH CHECK & OFFER
 # ------------------------------------------------------------------
 if [[ ":$PATH:" == *":$PREFIX:"* ]]; then
@@ -137,7 +159,8 @@ else
                 echo "# Added by claude-launcher-plus installer ($(date +%Y-%m-%d))"
                 echo "export PATH=\"$PREFIX:\$PATH\""
             } >> "$SHELL_RC"
-            echo "Added to $SHELL_RC. Run 'source $SHELL_RC' to apply now."
+            source "$SHELL_RC" 2>/dev/null || true
+            echo "Added to $SHELL_RC and applied."
         else
             echo "To add manually later:"
             echo "  echo 'export PATH=\"$PREFIX:\$PATH\"' >> $SHELL_RC"
