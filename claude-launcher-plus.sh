@@ -303,10 +303,8 @@ except Exception as e:
     fi
 
     local provider_list=()
-    declare -A provider_cfgs=()
     while IFS='|' read -r name cfg; do
         provider_list+=("$name")
-        provider_cfgs["$name"]="$cfg"
     done <<< "$providers"
 
     local choice=1 selected_name selected_cfg
@@ -323,7 +321,9 @@ except Exception as e:
     fi
     if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#provider_list[@]} )); then
         selected_name="${provider_list[$((choice-1))]}"
-        selected_cfg="${provider_cfgs[$selected_name]}"
+        while IFS='|' read -r name cfg; do
+            [[ "$name" == "$selected_name" ]] && { selected_cfg="$cfg"; break; }
+        done <<< "$providers"
 
         # ── Model selection (if provider has models) ──────────────────────
         local models_output
