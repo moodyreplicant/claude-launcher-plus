@@ -114,6 +114,25 @@ pick_lm_studio_model() {
     fi
 }
 
+print_lm_studio_status() {
+    local models=() studio_running=false
+    if check_lm_studio; then
+        studio_running=true
+        while IFS= read -r line; do
+            [[ -n "$line" ]] && models+=("$line")
+        done < <(get_lm_studio_models || true)
+    fi
+    if $studio_running; then
+        if [[ ${#models[@]} -gt 0 ]]; then
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
+        else
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
+        fi
+    else
+        echo -e "  LM Studio: ${RED}● offline${NC} at ${LM_STUDIO_URL}"
+    fi
+}
+
 # ------------------------------------------------------------------
 # STARTUP HELPERS
 # ------------------------------------------------------------------
@@ -399,23 +418,7 @@ show_status() {
     echo -e "${BLUE}${BOLD}📊 Claude Code Launcher — Status${NC}"
     echo ""
 
-    local models=() studio_running=false
-    if check_lm_studio; then
-        studio_running=true
-        while IFS= read -r line; do
-            [[ -n "$line" ]] && models+=("$line")
-        done < <(get_lm_studio_models || true)
-    fi
-
-    if $studio_running; then
-        if [[ ${#models[@]} -eq 0 ]]; then
-            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
-        else
-            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
-        fi
-    else
-        echo -e "  LM Studio: ${RED}● offline${NC} at ${LM_STUDIO_URL}"
-    fi
+    print_lm_studio_status
 
     if [[ -n "${ANTHROPIC_BASE_URL:-}" ]]; then
         echo -e "  Base URL:   ${YELLOW}${ANTHROPIC_BASE_URL}${NC}"
@@ -455,23 +458,7 @@ show_menu() {
     echo -e "${BOLD}└─────────────────────────────────────┘${NC}"
     echo ""
 
-    local models=() studio_running=false
-    if check_lm_studio; then
-        studio_running=true
-        while IFS= read -r line; do
-            [[ -n "$line" ]] && models+=("$line")
-        done < <(get_lm_studio_models || true)
-    fi
-
-    if $studio_running; then
-        if [[ ${#models[@]} -gt 0 ]]; then
-            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
-        else
-            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
-        fi
-    else
-        echo -e "  LM Studio: ${RED}● offline${NC}"
-    fi
+    print_lm_studio_status
 
     echo ""
     echo -e "  ${BOLD}1)${NC}  🖥  Local mode (LM Studio)"
