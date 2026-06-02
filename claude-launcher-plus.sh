@@ -306,6 +306,45 @@ except Exception as e:
             [[ "$name" == "$selected_name" ]] && { selected_cfg="$cfg"; break; }
         done <<< "$providers"
 
+        # ── Model selection (if provider has models) ──────────────────────
+        local models_output
+        models_output=$(python3 -c "
+import json, sys
+cfg = json.loads(sys.argv[1])
+for i, m in enumerate(cfg.get('models', [])):
+    print(f'{i+1}|{m[\"name\"]}')
+" "$selected_cfg")
+
+        if [[ -n "$models_output" ]]; then
+            local model_entries=()
+            while IFS='|' read -r idx model_name; do
+                model_entries+=("$model_name")
+            done <<< "$models_output"
+
+            echo -e "Available models for ${BOLD}$selected_name${NC}:"
+            for i in "${!model_entries[@]}"; do
+                echo -e "  ${BOLD}$((i+1)))${NC}  ${model_entries[$i]}"
+            done
+            echo ""
+
+            read -rp "Choose model [1-${#model_entries[@]}]: " model_choice
+            if [[ "$model_choice" =~ ^[0-9]+$ ]] && (( model_choice >= 1 && model_choice <= ${#model_entries[@]} )); then
+                selected_cfg=$(python3 -c "
+import json, sys
+cfg = json.loads(sys.argv[1])
+idx = int(sys.argv[2]) - 1
+model_env = cfg['models'][idx].get('env', {})
+base_env = cfg.get('env', {}).copy()
+base_env.update(model_env)
+print(json.dumps({'env': base_env}))
+" "$selected_cfg" "$model_choice")
+            else
+                echo -e "${RED}Invalid choice${NC}"
+                return 1
+            fi
+        fi
+        # ───────────────────────────────────────────────────────────────
+
         # Apply provider config
         python3 -c "
 import json, os
@@ -325,7 +364,7 @@ for k,v in cfg.get('env', {}).items():
 with open(path,'w') as f: json.dump(d,f,indent=2)
 " 2>/dev/null
 
-        # ── NEW: Export provider env vars before launch ─────────────────────
+        # ── Export provider env vars before launch ─────────────────────
         while IFS='=' read -r k v; do
             export "$k=$v"
         done < <(python3 -c "

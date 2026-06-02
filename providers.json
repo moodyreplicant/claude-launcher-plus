@@ -1,0 +1,46 @@
+{
+  "providers": {
+    "Deepseek": {
+      "env": {
+        "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+        "ANTHROPIC_AUTH_TOKEN": "<your_deepseek_api_key>",
+        "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "CLAUDE_CODE_EFFORT_LEVEL": "max"
+      }
+    },
+    "OpenRouter": {
+      "env": {
+        "OPENROUTER_API_KEY": "<your_openrouter_api_key>",
+        "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+        "ANTHROPIC_AUTH_TOKEN": "your_openrouter_api_key",
+        "ANTHROPIC_MODEL": "poolside/laguna-m.1:free",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "CLAUDE_CODE_EFFORT_LEVEL": "max"
+      },
+      "models": [
+        {
+          "name": "Claude 3.5 Sonnet",
+          "env": {
+            "ANTHROPIC_MODEL": "anthropic/claude-3.5-sonnet"
+          }
+        },
+        {
+          "name": "GPT-4o",
+          "env": {
+            "ANTHROPIC_MODEL": "openai/gpt-4o"
+          }
+        },
+        {
+          "name": "Gemini 2.5 Pro",
+          "env": {
+            "ANTHROPIC_MODEL": "google/gemini-2.5-pro-exp-03-25:free"
+          }
+        }
+      ]
+    }
+  }
+}
