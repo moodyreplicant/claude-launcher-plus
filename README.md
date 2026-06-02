@@ -63,18 +63,26 @@ mv claude-launcher-plus.sh /usr/local/bin/claude-launcher-plus   # macOS/Linux
 
 ### Add a Shell Alias (no PATH changes needed)
 
-Add this line to your shell config to run `clp` from any terminal:
+The installer offers to add the `clp` alias to your shell config and applies it immediately:
 
 ```bash
-# For zsh (macOS default) — add to ~/.zshrc
+# For zsh (macOS default) — adds alias to ~/.zshrc
+# For bash — adds alias to ~/.bashrc
+# For fish — adds alias to ~/.config/fish/config.fish
+```
+
+To add manually, append to your shell config:
+
+```bash
+# For zsh (macOS default)
 echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.zshrc
 source ~/.zshrc
 
-# For bash — add to ~/.bashrc or ~/.bash_profile
+# For bash
 echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.bashrc
 source ~/.bashrc
 
-# For fish — add to ~/.config/fish/config.fish
+# For fish
 echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.config/fish/config.fish
 ```
 
