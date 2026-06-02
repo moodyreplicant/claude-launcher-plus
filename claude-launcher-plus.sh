@@ -52,19 +52,19 @@ fi
 # ------------------------------------------------------------------
 
 ensure_onboarding_done() {
-    if [[ ! -f "$CLAUDE_JSON" ]]; then
-        echo '{"hasCompletedOnboarding": true}' > "$CLAUDE_JSON"
-    elif ! grep -q '"hasCompletedOnboarding"' "$CLAUDE_JSON"; then
-        local tmp=$(mktemp)
-        python3 -c "
-import json, sys
-with open('$CLAUDE_JSON') as f:
-    d = json.load(f)
+    python3 -c "
+import json, os
+path = '$CLAUDE_JSON'
+d = {}
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except: pass
 d['hasCompletedOnboarding'] = True
-with open('$tmp', 'w') as f:
+with open(path, 'w') as f:
     json.dump(d, f, indent=2)
-" && mv "$tmp" "$CLAUDE_JSON"
-    fi
+"
 }
 
 ensure_settings_dir() {
