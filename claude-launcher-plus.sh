@@ -73,18 +73,18 @@ ensure_settings_dir() {
 }
 
 check_lm_studio() {
-    curl -s --connect-timeout 2 "$LM_STUDIO_URL/v1/models" > /dev/null 2>&1
+    curl -s --connect-timeout 2 "$LM_STUDIO_URL/api/v1/models" > /dev/null 2>&1
 }
 
 get_lm_studio_models() {
     local response
-    response=$(curl -s --connect-timeout 2 "$LM_STUDIO_URL/api/v0/models") || return 1
+    response=$(curl -s --connect-timeout 2 "$LM_STUDIO_URL/api/v1/models" 2>/dev/null) || return 1
     python3 -c "
 import json, sys
 data = json.loads(sys.stdin.read())
-for m in data.get('data', []):
-    if m.get('state') == 'loaded' and m.get('type') == 'llm':
-        print(m.get('id', 'unknown'))
+for m in data.get('models', []):
+    if len(m.get('loaded_instances', [])) > 0 and m.get('type') == 'llm':
+        print(m.get('key', 'unknown'))
 " <<<"$response"
 }
 
@@ -366,17 +366,22 @@ show_status() {
     echo -e "${BLUE}${BOLD}📊 Claude Code Launcher — Status${NC}"
     echo ""
 
-    local models=()
+    local models=() studio_running=false
     if check_lm_studio; then
+        studio_running=true
         while IFS= read -r line; do
             [[ -n "$line" ]] && models+=("$line")
         done < <(get_lm_studio_models || true)
     fi
 
-    if [[ ${#models[@]} -eq 0 ]]; then
-        echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
+    if $studio_running; then
+        if [[ ${#models[@]} -eq 0 ]]; then
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
+        else
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
+        fi
     else
-        echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
+        echo -e "  LM Studio: ${RED}● offline${NC} at ${LM_STUDIO_URL}"
     fi
 
     if [[ -n "${ANTHROPIC_BASE_URL:-}" ]]; then
@@ -417,15 +422,20 @@ show_menu() {
     echo -e "${BOLD}└─────────────────────────────────────┘${NC}"
     echo ""
 
-    local models=()
+    local models=() studio_running=false
     if check_lm_studio; then
+        studio_running=true
         while IFS= read -r line; do
             [[ -n "$line" ]] && models+=("$line")
         done < <(get_lm_studio_models || true)
     fi
 
-    if [[ ${#models[@]} -gt 0 ]]; then
-        echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
+    if $studio_running; then
+        if [[ ${#models[@]} -gt 0 ]]; then
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — ${#models[@]} model(s): ${BOLD}${models[*]}${NC}"
+        else
+            echo -e "  LM Studio:  ${GREEN}● running${NC} at ${LM_STUDIO_URL} — 0 models loaded"
+        fi
     else
         echo -e "  LM Studio: ${RED}● offline${NC}"
     fi
