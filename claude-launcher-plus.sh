@@ -27,7 +27,6 @@ LM_STUDIO_HOST="${LM_STUDIO_HOST:-localhost}"
 LM_STUDIO_PORT="${LM_STUDIO_PORT:-1234}"
 LM_STUDIO_URL="http://${LM_STUDIO_HOST}:${LM_STUDIO_PORT}"
 LM_STUDIO_API_KEY="${LM_STUDIO_API_KEY:-lm-studio}"
-LOCAL_MODEL=""                                 # Optional: pre‑select a model
 
 CLAUDE_JSON="$HOME/.claude.json"               # Claude onboarding flag
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"  # Claude settings file
