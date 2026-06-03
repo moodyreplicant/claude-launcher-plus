@@ -194,12 +194,12 @@ It **only touches these keys** — everything else you set is preserved across m
 |-----|---------|--------|
 | `apiKeyHelper` | Path to auth script | `local` mode |
 | `env.CLAUDE_CODE_ATTRIBUTION_HEADER` | Attribution toggle | `local` mode |
-| `env.ANTHROPIC_BASE_URL` | API endpoint | `cloud`, `custom` modes |
+| `env.ANTHROPIC_BASE_URL` | API endpoint | `custom` mode |
 | `env.ANTHROPIC_MODEL` | Model ID | `custom` mode |
 | `env.ANTHROPIC_AUTH_TOKEN` | API key | `custom` mode |
 | `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | Telemetry off | `custom` mode |
 | `env.CLAUDE_CODE_EFFORT_LEVEL` | Effort/thinking | `custom` mode |
-| `env.ANTHROPIC_DEFAULT_*_MODEL` | Default model aliases | `custom` mode |
+| `env.ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` | Default model aliases | `custom` mode |
 | `env.OPENROUTER_API_KEY` | OpenRouter key | `custom` mode (OpenRouter) |
 
 ### What you can set safely
