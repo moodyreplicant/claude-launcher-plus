@@ -182,7 +182,21 @@ if os.path.exists(path):
         with open(path) as f:
             d = json.load(f)
     except: pass
-d.clear()
+
+# Remove only launcher-managed keys, preserve everything else
+d.pop('apiKeyHelper', None)
+d.pop('ANTHROPIC_AUTH_TOKEN', None)
+if 'env' in d:
+    env = d['env']
+    for key in ('ANTHROPIC_BASE_URL', 'ANTHROPIC_MODEL', 'ANTHROPIC_AUTH_TOKEN',
+                'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC', 'CLAUDE_CODE_ATTRIBUTION_HEADER',
+                'CLAUDE_CODE_EFFORT_LEVEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL',
+                'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+                'OPENROUTER_API_KEY'):
+        env.pop(key, None)
+    if not env:
+        d.pop('env', None)
+
 with open(path, 'w') as f:
     json.dump(d, f, indent=2)
 "
