@@ -183,6 +183,66 @@ clp help
 
 ---
 
+## Settings Management
+
+### Which keys the launcher manages
+
+The launcher writes to `~/.claude/settings.json` to configure the active provider.
+It **only touches these keys** — everything else you set is preserved across mode switches:
+
+| Key | Purpose | Set By |
+|-----|---------|--------|
+| `apiKeyHelper` | Path to auth script | `local` mode |
+| `env.CLAUDE_CODE_ATTRIBUTION_HEADER` | Attribution toggle | `local` mode |
+| `env.ANTHROPIC_BASE_URL` | API endpoint | `cloud`, `custom` modes |
+| `env.ANTHROPIC_MODEL` | Model ID | `custom` mode |
+| `env.ANTHROPIC_AUTH_TOKEN` | API key | `custom` mode |
+| `env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | Telemetry off | `custom` mode |
+| `env.CLAUDE_CODE_EFFORT_LEVEL` | Effort/thinking | `custom` mode |
+| `env.ANTHROPIC_DEFAULT_*_MODEL` | Default model aliases | `custom` mode |
+| `env.OPENROUTER_API_KEY` | OpenRouter key | `custom` mode (OpenRouter) |
+
+### What you can set safely
+
+**Any other key in `~/.claude/settings.json` is yours to manage.** The launcher
+reads the file, removes only its own keys, and writes back with your keys intact.
+
+Examples of safe user settings:
+
+```json
+{
+  "editor": "vim",
+  "model": "claude-sonnet-4-20250514",
+  "permissions": {
+    "allow": ["Bash(pytest:*)", "Read(*)"],
+    "deny": ["Bash(rm:*)", "Bash(git push:*)", "Bash(curl:*)", "Bash(gh:*)", "Bash(npm publish:*)"]
+  },
+  "theme": "dark"
+}
+```
+
+### Workflow
+
+```
+launch (any mode)
+  │
+  ├─ Reads  ~/.claude/settings.json
+  ├─ Removes only launcher-managed keys (leaving yours alone)
+  ├─ Writes provider-specific keys on top
+  ├─ Saves  ~/.claude/settings.json  ← your keys are still there
+  │
+  └─ exec claude
+```
+
+### Caveat
+
+If you manually set any of the launcher-managed keys listed above, they
+**will be overwritten** on the next launch. Move personal overrides to keys
+outside the launcher's scope, or use Claude Code's built-in `--model` /
+`--editor` flags instead.
+
+---
+
 ## Environment Variables
 
 | Variable | Default | Description |
