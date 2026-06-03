@@ -188,7 +188,9 @@ clp help
 ### Which keys the launcher manages
 
 The launcher writes to `~/.claude/settings.json` to configure the active provider.
-It **only touches these keys** — everything else you set is preserved across mode switches:
+It **only touches these keys** — everything else you set is preserved across mode switches.
+This is the **user scope** (lowest priority). For personal settings, use
+`.claude/settings.local.json` in your project (see below).
 
 | Key | Purpose | Set By |
 |-----|---------|--------|
@@ -202,44 +204,74 @@ It **only touches these keys** — everything else you set is preserved across m
 | `env.ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` | Default model aliases | `custom` mode |
 | `env.OPENROUTER_API_KEY` | OpenRouter key | `custom` mode (OpenRouter) |
 
-### What you can set safely
+### Preserving your personal settings
 
-**Any other key in `~/.claude/settings.json` is yours to manage.** The launcher
-reads the file, removes only its own keys, and writes back with your keys intact.
+Claude Code merges settings from **three scopes**, with higher scopes overriding lower:
 
-Examples of safe user settings:
+| Scope | Location | Priority | Touched by launcher? |
+|-------|----------|----------|---------------------|
+| User (global) | `~/.claude/settings.json` | Lowest | **Yes** — provider config written here |
+| Project | `.claude/settings.json` | Medium | No |
+| **Local** | `.claude/settings.local.json` | **Highest** | **No** |
+
+**Recommended approach:** Put your personal settings in `.claude/settings.local.json`
+inside your project's working directory. The launcher never touches this file, and its
+values override global settings when present.
+
+Create it in any project:
+
+```bash
+mkdir -p .claude
+```
+
+Then add your settings. Example `.claude/settings.local.json`:
 
 ```json
 {
-  "editor": "vim",
-  "model": "claude-sonnet-4-20250514",
+  "attribution": {
+    "coAuthoredBy": true,
+    "coAuthorName": "Your Name",
+    "coAuthorEmail": "you@example.com"
+  },
   "permissions": {
     "allow": ["Bash(pytest:*)", "Read(*)"],
-    "deny": ["Bash(rm:*)", "Bash(git push:*)", "Bash(curl:*)", "Bash(gh:*)", "Bash(npm publish:*)"]
+    "deny": ["Bash(rm:*)", "Bash(git push:*)"]
   },
+  "editor": "vim",
   "theme": "dark"
 }
 ```
+
+Claude Code auto-gitignores `.claude/settings.local.json` — it stays local to your machine.
+
+### Why not edit `~/.claude/settings.json` directly?
+
+Any non-launcher keys you add to the global file **do survive** provider switches (the
+launcher only removes its own keys). However, Claude Code itself may rewrite this file
+during sessions, and the lower priority means local settings always take precedence.
+Using the local file is safer and per-project.
 
 ### Workflow
 
 ```
 launch (any mode)
   │
-  ├─ Reads  ~/.claude/settings.json
-  ├─ Removes only launcher-managed keys (leaving yours alone)
-  ├─ Writes provider-specific keys on top
-  ├─ Saves  ~/.claude/settings.json  ← your keys are still there
+  ├─ Reads    ~/.claude/settings.json
+  ├─ Removes  only launcher-managed keys
+  ├─ Writes   provider-specific keys
+  ├─ Saves    ~/.claude/settings.json
   │
-  └─ exec claude
+  ├─ .claude/settings.local.json  ← your settings, never touched
+  │
+  └─ exec claude (merges both, local wins)
 ```
 
 ### Caveat
 
-If you manually set any of the launcher-managed keys listed above, they
-**will be overwritten** on the next launch. Move personal overrides to keys
-outside the launcher's scope, or use Claude Code's built-in `--model` /
-`--editor` flags instead.
+If you manually set any launcher-managed key in `~/.claude/settings.json`, it will be
+overwritten on the next launch. Additionally, Claude Code itself may rewrite
+`~/.claude/settings.json` during sessions. For personal settings that must persist,
+use `.claude/settings.local.json` in your project directory.
 
 ---
 
