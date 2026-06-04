@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Python syntax
+        run: python3 -m py_compile claude-launcher-plus.py
+      - name: providers.json validity
+        run: python3 -m json.tool providers.json > /dev/null
+      - name: providers.schema.json validity
+        run: python3 -m json.tool providers.schema.json > /dev/null
+      - name: Shell syntax
+        run: |
+          bash -n install.sh
+          bash -n uninstall.sh

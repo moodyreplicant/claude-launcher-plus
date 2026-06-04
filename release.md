@@ -1,0 +1,77 @@
+# Release v2.0.0 — Python Rewrite
+
+**Tag:** `v2.0.0`
+**Date:** 2026-06-04
+**Branch:** `feat/python-rewrite` → `main`
+
+## Summary
+
+The bash launcher (643 lines, 11 Python subprocesses, fragile `IFS='|'` parsing)
+has been replaced by a single Python script (512 lines, stdlib-only, zero new
+dependencies). Python 3 was already a hard dependency — this consolidates
+everything into one clean process.
+
+## Changes
+
+### Rewrite
+- **`claude-launcher-plus.py`** — single-file Python launcher replacing the bash
+  script. Uses `argparse`, `urllib` (replaces curl), `json`, `pathlib`, `tempfile`.
+  No pip install, no virtualenv.
+- **Menu now loops** — `subprocess.run` instead of `exec`, so the interactive
+  menu returns after Claude Code exits.
+- **Settings written after confirmation** — no more stale provider config if you
+  abort.
+
+### Security
+- **providers.json v2** — API keys use `$VAR` references (`"$DEEPSEEK_API_KEY"`),
+  resolved from the environment at runtime. Config file contains no secrets.
+  v1 (plaintext keys) still supported transparently.
+- **apiKeyHelper** — created with `os.open(0o700)`, shell-quoted via `shlex.quote()`.
+  No TOCTOU window, no shell injection vector.
+- **Atomic writes** — all JSON writes go through `tempfile` + `os.replace`.
+  Crash-safe, no partial files.
+
+### Bug fixes
+- Corrupted `settings.json` is backed up to `.bak` instead of silently wiped
+- TTY guards on all interactive prompts (no blocking in non-interactive mode)
+- Exit codes reported when Claude Code exits non-zero
+- Signal handlers restored before launching Claude (Ctrl+C reaches the child)
+- Polling timeout is a hard 60-second deadline
+
+### Windows support
+- **`claude-launcher-plus.bat`** — CMD wrapper (3 lines)
+- **`install.ps1`** — PowerShell installer with PATH setup
+- Python's `pathlib.Path.home()` handles Windows paths natively
+
+### Infrastructure
+- **`CLAUDE.md`** — project documentation for AI assistants
+- **`providers.schema.json`** — JSON Schema draft-07 for v1/v2 validation
+- **`.github/workflows/ci.yml`** — Python syntax, JSON validity, shell syntax on push/PR
+- **`archive/claude-launcher-plus.sh`** — old bash launcher, kept for reference
+
+## Migration from v1.x
+
+```bash
+git pull
+./install.sh   # detects old version, migrates automatically
+```
+
+Your `providers.json` and `settings.json` are preserved. The `clp` alias
+continues working. To use v2 env-var references, update your API keys:
+
+```bash
+# ~/.zshrc or ~/.bashrc
+export DEEPSEEK_API_KEY="sk-your-key"
+export OPENROUTER_API_KEY="sk-or-your-key"
+```
+
+Then update `~/.claude/providers.json` to replace plaintext keys with `$VAR` refs.
+
+## Verification
+
+```bash
+python3 -m py_compile claude-launcher-plus.py   # syntax
+python3 -m json.tool providers.json > /dev/null  # config
+bash -n install.sh && bash -n uninstall.sh        # shell scripts
+python3 claude-launcher-plus.py --dry-run custom  # validate
+```

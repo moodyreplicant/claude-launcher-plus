@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# claude-launcher-plus.sh
+# claude-launcher-plus.sh  —  ARCHIVED
+#
+# ═══════════════════════════════════════════════════════════════════
+# SUPERSEDED by claude-launcher-plus.py (v2.0.0, 2026-06-04)
+#
+# This bash launcher (v1.3.0) is kept for reference only.
+# The Python rewrite consolidates 11 subprocess spawns, fixes menu
+# looping, adds atomic writes, proper signal handling, and Windows
+# support.  See the v2.0.0 tag for details.
+# ═══════════════════════════════════════════════════════════════════
 #
 # Enhanced launcher for Claude Code with LM Studio and custom provider support.
 # Based on the original claude-launcher.sh created by @gmotzespina.
