@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)]()
+[![CI](https://github.com/moodyreplicant/claude-launcher-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/moodyreplicant/claude-launcher-plus/actions/workflows/ci.yml)
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
 
