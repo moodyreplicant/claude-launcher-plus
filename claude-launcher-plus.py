@@ -10,7 +10,7 @@ import tempfile, textwrap, time, urllib.request, urllib.error
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-VERSION = "2.0.0"
+VERSION = "2.0.2"
 
 # -- Configuration --------------------------------------------------
 LM_STUDIO_URL = f"http://{os.environ.get('LM_STUDIO_HOST','localhost')}:{os.environ.get('LM_STUDIO_PORT','1234')}"
@@ -98,8 +98,11 @@ def ensure_onboarding_done() -> None:
     atomic_write(CLAUDE_JSON, d)
 
 # -- Providers management -------------------------------------------
+class ProviderConfigError(Exception):
+    """Raised when a provider's env var ($VAR ref) can't be resolved."""
+
 def _resolve_env_value(value: str, provider_name: str) -> str:
-    """Resolve $VAR / ${VAR} from environment. Exits with help if unset."""
+    """Resolve $VAR / ${VAR} from environment. Raises ProviderConfigError if unset."""
     if not isinstance(value, str) or not value.startswith("$"):
         return value
     var = value[1:].strip("{}")
@@ -107,8 +110,18 @@ def _resolve_env_value(value: str, provider_name: str) -> str:
         print(f"\n  {C.RED}Env var '{var}' is not set.{C.NC}", file=sys.stderr)
         print(f"  Required by '{C.BOLD}{provider_name}{C.NC}'.", file=sys.stderr)
         print(f"  Add 'export {var}=<key>' to your shell config.\n", file=sys.stderr)
-        sys.exit(1)
+        raise ProviderConfigError(f"Env var '{var}' is not set")
     return os.environ[var]
+
+def _resolve_provider_cfg(name: str, cfg: dict) -> None:
+    """Resolve $VAR refs in a single provider's env (mutates in place).
+    Raises ProviderConfigError if any env var can't be resolved.
+    Only called at launch time — not during read-only operations like status."""
+    if "env" in cfg:
+        cfg["env"] = {k: _resolve_env_value(v, name) for k, v in cfg["env"].items()}
+    for model in cfg.get("models", []):
+        if "env" in model:
+            model["env"] = {k: _resolve_env_value(v, name) for k, v in model["env"].items()}
 
 def load_providers() -> dict:
     """Load & validate providers.json. Supports v1 (plaintext) and v2 ($VAR refs)."""
@@ -128,13 +141,6 @@ def load_providers() -> dict:
         version = 1
 
     providers = data.get("providers", {})
-    if version >= 2:
-        for name, cfg in providers.items():
-            if "env" in cfg:
-                cfg["env"] = {k: _resolve_env_value(v, name) for k, v in cfg["env"].items()}
-            for model in cfg.get("models", []):
-                if "env" in model:
-                    model["env"] = {k: _resolve_env_value(v, name) for k, v in model["env"].items()}
     return providers
 
 # -- LM Studio client (stdlib urllib — replaces curl) ---------------
@@ -226,17 +232,17 @@ def launch_local(claude_args: List[str]) -> None:
     if not check_lm_studio():
         print(f"{C.RED}✗ LM Studio not responding at {LM_STUDIO_URL}{C.NC}")
         print("  Make sure LM Studio is running and the server is started.")
-        if not _wait_for_lm_studio(): sys.exit(1)
+        if not _wait_for_lm_studio(): return
     print(f"{C.GREEN}✓ LM Studio is running{C.NC}\n")
 
     ensure_onboarding_done(); CLAUDE_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
 
     models = get_lm_studio_models()
     if not models:
-        print(f"{C.RED}No loaded models found — aborting.{C.NC}"); sys.exit(1)
+        print(f"{C.RED}No loaded models found — aborting.{C.NC}"); return
     idx = pick_from_list("Available LM Studio models", models)
     if idx is None:
-        print(f"{C.RED}No loaded models found — aborting.{C.NC}"); sys.exit(1)
+        print(f"{C.RED}No loaded models found — aborting.{C.NC}"); return
     chosen = models[idx]
     print(f"  Model: {C.BOLD}{chosen}{C.NC}")
 
@@ -303,6 +309,12 @@ def launch_custom(claude_args: List[str]) -> None:
     idx = pick_from_list("Available providers", names)
     if idx is None: return
     name, cfg = names[idx], providers[names[idx]]
+
+    # Resolve $VAR refs at launch time (not eagerly at load time)
+    try:
+        _resolve_provider_cfg(name, cfg)
+    except ProviderConfigError:
+        return
 
     # Model picker (if provider defines models)
     chosen_model = ""
@@ -375,12 +387,17 @@ def show_status() -> None:
 
     print(f"\n  {C.BOLD}Custom Providers:{C.NC}")
     if PROVIDERS_FILE.exists():
-        providers = load_providers()
-        if not providers: print("    (no providers defined)")
-        for pname, cfg in sorted(providers.items()):
-            mc = len(cfg.get("models", []))
-            url = cfg.get("env", {}).get("ANTHROPIC_BASE_URL", "not set")
-            print(f"    {pname}  →  {url}" + (f"  ({mc} models)" if mc else ""))
+        try:
+            providers = load_providers()
+            if not providers: print("    (no providers defined)")
+            for pname, cfg in sorted(providers.items()):
+                mc = len(cfg.get("models", []))
+                url = cfg.get("env", {}).get("ANTHROPIC_BASE_URL", "not set")
+                print(f"    {pname}  →  {url}" + (f"  ({mc} models)" if mc else ""))
+        except ProviderConfigError:
+            # env var resolution failed — _resolve_env_value already printed
+            # the error; degrade gracefully so status display continues
+            pass
     else:
         print(f"    {C.YELLOW}none configured{C.NC}  (create {PROVIDERS_FILE})")
 
