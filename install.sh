@@ -24,7 +24,7 @@ PROVIDERS_DEST="$HOME/.claude/providers.json"
 VERSION_FILE="$HOME/.claude/.clp-version"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SOURCE_SCRIPT="$SCRIPT_DIR/$SCRIPT_NAME.sh"
+SOURCE_SCRIPT="$SCRIPT_DIR/$SCRIPT_NAME.py"
 
 # ------------------------------------------------------------------
 # PRE-FLIGHT CHECKS
@@ -36,10 +36,26 @@ if [[ ! -f "$SOURCE_SCRIPT" ]]; then
 fi
 
 # ------------------------------------------------------------------
-# VERSION EXTRACTION
-#   Uses sed (not grep -P) for macOS/Linux portability
+# PYTHON CHECK
 # ------------------------------------------------------------------
-SOURCE_VERSION=$(sed -n 's/^VERSION="\([^"]*\)".*/\1/p' "$SOURCE_SCRIPT")
+if ! command -v python3 &>/dev/null; then
+    echo "Error: python3 is required but not found in PATH."
+    echo "Install Python 3.6+ and try again."
+    exit 1
+fi
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+if [[ "$PYTHON_MAJOR" -lt 3 ]] || { [[ "$PYTHON_MAJOR" -eq 3 ]] && [[ "$PYTHON_MINOR" -lt 6 ]]; }; then
+    echo "Error: Python 3.6+ required, found $PYTHON_VERSION."
+    exit 1
+fi
+
+# ------------------------------------------------------------------
+# VERSION EXTRACTION
+#   Handles both bash (VERSION="X.Y.Z") and Python (VERSION = "X.Y.Z")
+# ------------------------------------------------------------------
+SOURCE_VERSION=$(sed -n 's/^VERSION *= *"\([^"]*\)".*/\1/p' "$SOURCE_SCRIPT")
 if [[ -z "$SOURCE_VERSION" ]]; then
     echo "Warning: Could not detect version in $SOURCE_SCRIPT"
     SOURCE_VERSION="unknown"
@@ -74,9 +90,27 @@ else
 fi
 
 # ------------------------------------------------------------------
+# MIGRATION DETECTION
+# ------------------------------------------------------------------
+migration_notice=false
+if [[ -f "$TARGET" ]]; then
+    # Check if installed version is the old bash launcher (no .py extension)
+    first_line=$(head -1 "$TARGET" 2>/dev/null || true)
+    if [[ "$first_line" == "#!/usr/bin/env bash" ]]; then
+        migration_notice=true
+    fi
+fi
+
+# ------------------------------------------------------------------
 # INSTALL (if needed)
 # ------------------------------------------------------------------
 if $do_install; then
+    if $migration_notice; then
+        echo ""
+        echo "  ─── Migrating from bash-based launcher to Python v$SOURCE_VERSION ───"
+        echo "  Your providers.json and settings are preserved."
+        echo ""
+    fi
     mkdir -p "$PREFIX"
     cp "$SOURCE_SCRIPT" "$TARGET"
     chmod +x "$TARGET"

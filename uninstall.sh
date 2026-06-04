@@ -45,7 +45,7 @@ if [[ ! -f "$TARGET" ]]; then
     exit 0
 fi
 
-installed_version=$(sed -n 's/^VERSION="\([^"]*\)".*/\1/p' "$TARGET" 2>/dev/null || echo "unknown")
+installed_version=$(sed -n 's/^VERSION *= *"\([^"]*\)".*/\1/p' "$TARGET" 2>/dev/null || echo "unknown")
 echo "Found claude-launcher-plus v$installed_version at $TARGET"
 echo ""
 
@@ -84,6 +84,21 @@ removed+=("$TARGET")
 if [[ -f "$VERSION_FILE" ]]; then
     rm "$VERSION_FILE"
     removed+=("$VERSION_FILE")
+fi
+
+# ------------------------------------------------------------------
+# OFFER API-KEY-HELPER REMOVAL
+# ------------------------------------------------------------------
+KEY_HELPER="$HOME/.claude/api-key-helper.sh"
+if [[ -f "$KEY_HELPER" ]]; then
+    echo ""
+    read -rp "Remove $KEY_HELPER (LM Studio auth helper)? [y/N] " answer </dev/tty
+    if [[ "$answer" =~ ^[Yy] ]]; then
+        rm "$KEY_HELPER"
+        removed+=("$KEY_HELPER")
+    else
+        kept+=("$KEY_HELPER")
+    fi
 fi
 
 # ------------------------------------------------------------------

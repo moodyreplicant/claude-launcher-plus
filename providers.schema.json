@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/moodyreplicant/claude-launcher-plus/providers.schema.json",
+  "title": "Claude Launcher Plus — Providers Configuration",
+  "description": "Schema for ~/.claude/providers.json. Supports v1 (plaintext keys) and v2 ($VAR env references).",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "Schema version. Omit for v1 (plaintext keys). Set to 2 for $VAR env-var references.",
+      "type": "integer",
+      "enum": [1, 2]
+    },
+    "providers": {
+      "type": "object",
+      "description": "Map of provider name → provider configuration.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Human-readable description shown in status display."
+          },
+          "website": {
+            "type": "string",
+            "description": "Provider website URL for reference."
+          },
+          "env": {
+            "type": "object",
+            "description": "Environment variables to set for this provider. In v2, string values starting with $ are resolved from the shell environment (e.g. \"$DEEPSEEK_API_KEY\").",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "models": {
+            "type": "array",
+            "description": "Optional list of models. If present, user picks one after selecting the provider. Model-level env is merged on top of provider-level env.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Display name shown in the model picker."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional model description."
+                },
+                "env": {
+                  "type": "object",
+                  "description": "Model-specific env vars merged on top of provider-level env. Typically sets ANTHROPIC_MODEL.",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["name"]
+            }
+          }
+        },
+        "required": ["env"]
+      }
+    }
+  },
+  "required": ["providers"]
+}

@@ -1,9 +1,11 @@
 # Claude Code Launcher Plus
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)]()
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)]()
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
+
+> **v2.0.0** — Rewritten in Python. Zero new dependencies, native Windows support, env-var references for API keys (no secrets in config files), and the interactive menu now loops after Claude exits.
 
 ### Why This Exists
 
@@ -14,6 +16,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 - Static model selection so you can switch between multiple models per provider without editing files
 - DeepSeek and OpenRouter support out of the box
 - CLI subcommands for scripting and automation
+- **New in v2.0.0:** Python rewrite, Windows support, env-var API key references, menu looping
 
 ---
 
@@ -23,6 +26,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 - **Auto-detect LM Studio models** — discovers loaded LLMs on your machine and presents a picker
 - **Custom providers with model picker** — configure providers in `~/.claude/providers.json` and choose from multiple static models per provider
 - **Zero-config cloud mode** — launches standard Claude Code with your Anthropic account
+- **Menu returns after exit** — the interactive loop continues after Claude Code closes (no more `exec`)
 
 ---
 
@@ -30,16 +34,15 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 
 | Dependency | Check | Needed For |
 |-----------|-------|------------|
-| `bash` 3.2+ | `bash --version` | Runtime (macOS default) |
-| `python3` | `python3 --version` | JSON parsing in launcher |
-| `curl` | `curl --version` | LM Studio API calls |
+| `python3` 3.6+ | `python3 --version` | Runtime (macOS 12+ / Ubuntu 20.04+ ship 3.9+) |
 | `claude` | `claude --version` | Claude Code CLI (installed separately) |
+| `curl` | `curl --version` | LM Studio health checks (optional — `urllib` fallback) |
 
 ---
 
 ## Installation
 
-### Quick Install (recommended)
+### macOS & Linux
 
 ```bash
 git clone https://github.com/moodyreplicant/claude-launcher-plus.git
@@ -47,87 +50,105 @@ cd claude-launcher-plus
 ./install.sh   # installs to ~/.local/bin/claude-launcher-plus
 ```
 
-### Manual Install
+The installer:
+- Checks Python 3.6+ is available
+- Detects and migrates from the old bash-based launcher
+- Offers to add `~/.local/bin` to your PATH
+- Creates a `clp` alias in your shell config
+- Copies the providers.json template (only if none exists)
 
-```bash
-# Download the script
-curl -O https://raw.githubusercontent.com/moodyreplicant/claude-launcher-plus/main/claude-launcher-plus.sh
+### Windows
 
-# Make executable
-chmod +x claude-launcher-plus.sh
+**PowerShell (recommended):**
 
-# Move to your PATH
-mv claude-launcher-plus.sh /usr/local/bin/claude-launcher-plus   # macOS/Linux
-# or: mv claude-launcher-plus.sh ~/.local/bin/claude-launcher-plus
+```powershell
+git clone https://github.com/moodyreplicant/claude-launcher-plus.git
+cd claude-launcher-plus
+powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-### Add a Shell Alias (no PATH changes needed)
+Installs to `%LOCALAPPDATA%\Programs\claude-launcher-plus\` and adds to your user PATH.
 
-The installer offers to add the `clp` alias to your shell config and applies it immediately:
+**Manual (CMD or PowerShell):**
 
-```bash
-# For zsh (macOS default) — adds alias to ~/.zshrc
-# For bash — adds alias to ~/.bashrc
-# For fish — adds alias to ~/.config/fish/config.fish
+```cmd
+copy claude-launcher-plus.py %LOCALAPPDATA%\Programs\claude-launcher-plus\
+copy claude-launcher-plus.bat %LOCALAPPDATA%\Programs\claude-launcher-plus\
 ```
 
-To add manually, append to your shell config:
+Then add the folder to your PATH, or run via the `.bat` wrapper.
+
+### Manual Install (any platform)
 
 ```bash
-# For zsh (macOS default)
-echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.zshrc
-source ~/.zshrc
-
-# For bash
-echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.bashrc
-source ~/.bashrc
-
-# For fish
-echo 'alias clp="$HOME/.local/bin/claude-launcher-plus"' >> ~/.config/fish/config.fish
+# Download and make executable
+chmod +x claude-launcher-plus.py
+./claude-launcher-plus.py   # interactive menu
 ```
 
 ---
 
 ## Configuration
 
-### Custom Providers
+### Custom Providers (v2 — recommended)
 
-Copy the template and edit your API keys:
+Copy the template:
 
 ```bash
 mkdir -p ~/.claude
 cp providers.json ~/.claude/providers.json
 ```
 
-Edit `~/.claude/providers.json` with your API keys:
+**v2 format uses `$VAR` references** — your API keys stay in environment variables, never in the config file:
 
 ```json
 {
+  "version": 2,
   "providers": {
     "Deepseek": {
+      "description": "DeepSeek API (Anthropic-compatible endpoint)",
+      "website": "https://platform.deepseek.com",
       "env": {
         "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
-        "ANTHROPIC_AUTH_TOKEN": "sk-your-deepseek-key",
+        "ANTHROPIC_AUTH_TOKEN": "$DEEPSEEK_API_KEY",
         "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
-        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "CLAUDE_CODE_EFFORT_LEVEL": "max"
       },
       "models": [
         {
           "name": "Deepseek V4 Pro (1M ctx)",
-          "env": { "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]" }
+          "env": {
+            "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]"
+          }
         },
         {
           "name": "Deepseek V4 Flash (1M ctx)",
-          "env": { "ANTHROPIC_MODEL": "deepseek-v4-flash[1m]" }
+          "env": {
+            "ANTHROPIC_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-flash[1m]",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash[1m]"
+          }
         }
       ]
     },
     "OpenRouter": {
+      "description": "OpenRouter — unified API for many model providers",
+      "website": "https://openrouter.ai",
       "env": {
-        "OPENROUTER_API_KEY": "sk-or-your-key",
+        "OPENROUTER_API_KEY": "$OPENROUTER_API_KEY",
         "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-        "ANTHROPIC_AUTH_TOKEN": "sk-or-your-key",
-        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+        "ANTHROPIC_AUTH_TOKEN": "$OPENROUTER_API_KEY",
+        "ANTHROPIC_MODEL": "poolside/laguna-m.1:free",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "CLAUDE_CODE_EFFORT_LEVEL": "max"
       },
       "models": [
         {
@@ -148,11 +169,19 @@ Edit `~/.claude/providers.json` with your API keys:
 }
 ```
 
+Then export your keys in your shell profile (`~/.zshrc`, `~/.bashrc`, or `~/.profile`):
+
+```bash
+export DEEPSEEK_API_KEY="sk-your-key"
+export OPENROUTER_API_KEY="sk-or-your-key"
+```
+
+**v1 format (plaintext keys) is still supported** — the launcher detects the absence of `"version"` and handles v1 transparently.
+
 **How models work:**
 - If a provider has a `models` array, you pick from it after selecting the provider
 - Model-level `env` vars are merged on top of provider-level `env` (model overrides provider)
 - If a provider has no `models` array, the provider-level env is used as-is
-- Any env var can be overridden in a model entry, not just `ANTHROPIC_MODEL`
 
 ---
 
@@ -162,6 +191,7 @@ Edit `~/.claude/providers.json` with your API keys:
 
 ```bash
 clp
+# or: python3 claude-launcher-plus.py
 ```
 
 ### CLI Commands
@@ -177,8 +207,11 @@ clp status         # Show config + LM Studio status
 clp list-providers     # List configured providers
 clp list-models OpenRouter    # List models for a provider
 
+# Validation (no launch)
+clp --dry-run custom    # Validate config + connectivity
+
 # Help
-clp help
+clp --help
 ```
 
 ---
@@ -189,13 +222,10 @@ clp help
 
 The launcher writes to `~/.claude/settings.json` to configure the active provider.
 It **only touches these keys** — everything else you set is preserved across mode switches.
-This is the **user scope** (lowest priority). For personal settings, use
-`.claude/settings.local.json` in your project (see below).
 
 | Key | Purpose | Set By |
 |-----|---------|--------|
 | `apiKeyHelper` | Path to auth script | `local` mode |
-| `env.CLAUDE_CODE_ATTRIBUTION_HEADER` | Attribution toggle | `local` mode |
 | `env.ANTHROPIC_BASE_URL` | API endpoint | `custom` mode |
 | `env.ANTHROPIC_MODEL` | Model ID | `custom` mode |
 | `env.ANTHROPIC_AUTH_TOKEN` | API key | `custom` mode |
@@ -214,64 +244,24 @@ Claude Code merges settings from **three scopes**, with higher scopes overriding
 | Project | `.claude/settings.json` | Medium | No |
 | **Local** | `.claude/settings.local.json` | **Highest** | **No** |
 
-**Recommended approach:** Put your personal settings in `.claude/settings.local.json`
-inside your project's working directory. The launcher never touches this file, and its
-values override global settings when present.
+**Recommended:** Put personal settings in `.claude/settings.local.json` in your project.
+The launcher never touches this file.
 
-Create it in any project:
+---
+
+## Upgrading from v1.x (bash launcher)
+
+If you installed the old bash-based launcher (v1.0.0–v1.3.0), just run the new installer:
 
 ```bash
-mkdir -p .claude
+git pull
+./install.sh
 ```
 
-Then add your settings. Example `.claude/settings.local.json`:
+Your `providers.json` and `settings.json` are preserved. The `clp` alias continues working.
+The old `api-key-helper.sh` is regenerated with restricted permissions on next local-mode launch.
 
-```json
-{
-  "attribution": {
-    "coAuthoredBy": true,
-    "coAuthorName": "Your Name",
-    "coAuthorEmail": "you@example.com"
-  },
-  "permissions": {
-    "allow": ["Bash(pytest:*)", "Read(*)"],
-    "deny": ["Bash(rm:*)", "Bash(git push:*)"]
-  },
-  "editor": "vim",
-  "theme": "dark"
-}
-```
-
-Claude Code auto-gitignores `.claude/settings.local.json` — it stays local to your machine.
-
-### Why not edit `~/.claude/settings.json` directly?
-
-Any non-launcher keys you add to the global file **do survive** provider switches (the
-launcher only removes its own keys). However, Claude Code itself may rewrite this file
-during sessions, and the lower priority means local settings always take precedence.
-Using the local file is safer and per-project.
-
-### Workflow
-
-```
-launch (any mode)
-  │
-  ├─ Reads    ~/.claude/settings.json
-  ├─ Removes  only launcher-managed keys
-  ├─ Writes   provider-specific keys
-  ├─ Saves    ~/.claude/settings.json
-  │
-  ├─ .claude/settings.local.json  ← your settings, never touched
-  │
-  └─ exec claude (merges both, local wins)
-```
-
-### Caveat
-
-If you manually set any launcher-managed key in `~/.claude/settings.json`, it will be
-overwritten on the next launch. Additionally, Claude Code itself may rewrite
-`~/.claude/settings.json` during sessions. For personal settings that must persist,
-use `.claude/settings.local.json` in your project directory.
+To roll back, check out the `v1.3.0` tag and run `install.sh` from there.
 
 ---
 
@@ -281,8 +271,15 @@ use `.claude/settings.local.json` in your project directory.
 |----------|---------|-------------|
 | `LM_STUDIO_HOST` | `localhost` | LM Studio server hostname |
 | `LM_STUDIO_PORT` | `1234` | LM Studio server port |
-| `LM_STUDIO_API_KEY` | `lm-studio` | LM Studio API key (for apiKeyHelper) |
-| `NO_COLOR` | (unset) | Set to any value to disable colored output |
+| `LM_STUDIO_API_KEY` | `lm-studio` | LM Studio API key |
+| `NO_COLOR` | (unset) | Disable colored output |
+
+**Provider API keys** (v2 format — set these in your shell profile, not in providers.json):
+
+| Variable | Provider |
+|----------|----------|
+| `DEEPSEEK_API_KEY` | Deepseek |
+| `OPENROUTER_API_KEY` | OpenRouter |
 
 ---
 
@@ -290,17 +287,15 @@ use `.claude/settings.local.json` in your project directory.
 
 ```bash
 # Run the uninstaller from the cloned repository
-cd claude-launcher-plus
 ./uninstall.sh
 ```
 
 The uninstaller will:
-- Confirm before removing `~/.local/bin/claude-launcher-plus`
+- Confirm before removing the binary
 - Offer to remove `~/.claude/providers.json` (your provider config)
+- Offer to remove `~/.claude/api-key-helper.sh` (LM Studio auth helper)
 - Offer to clean up the PATH entry added by the installer
 - Leave Claude Code's own files (`~/.claude/settings.json`) untouched
-
-To uninstall manually, delete the script from wherever you placed it and optionally remove `~/.claude/providers.json`.
 
 ---
 
@@ -311,24 +306,30 @@ Make sure the LM Studio API server is started. Check: `curl http://localhost:123
 
 **Custom provider not working**
 - Verify `~/.claude/providers.json` exists and has valid JSON
-- Check `ANTHROPIC_AUTH_TOKEN` matches your API key
-- Confirm the `ANTHROPIC_BASE_URL` is correct for your provider
+- v2 format: make sure `DEEPSEEK_API_KEY` (or your provider's env var) is exported
+- v1 format: check `ANTHROPIC_AUTH_TOKEN` matches your API key
+- Run `clp --dry-run custom` to validate without launching
 
 **"Missing required dependencies"**
-Install missing tools:
 ```bash
 # macOS
-brew install python3 curl
+brew install python3
 
 # Ubuntu/Debian
-sudo apt install python3 curl
+sudo apt install python3
+
+# Windows
+winget install Python.Python.3
 ```
 Install [Claude Code](https://docs.anthropic.com/en/docs/claude-code) separately.
 
-**Permission denied**
-```bash
-chmod +x claude-launcher-plus.sh
+**Environment variable not found (v2 providers)**
 ```
+Error: Environment variable 'DEEPSEEK_API_KEY' is not set.
+Required by provider 'Deepseek'.
+Add 'export DEEPSEEK_API_KEY=<your-key>' to your shell config and restart your shell.
+```
+Set the variable in `~/.zshrc`, `~/.bashrc`, or `~/.profile` and restart your terminal.
 
 ---
 
@@ -340,6 +341,6 @@ MIT — see [LICENSE](LICENSE).
 
 ## Credits
 
-- **[gui.codes](https://www.gui.codes/articles/claude-code-offline-local-models)** — The original blog post that demonstrated how to redirect Claude Code to a local LM Studio server, making offline local models possible
-- **[@gmotzespina](https://github.com/gmotzespina)** — Creator of the original `claude-launcher.sh` script that this project is based on
-- This project extends the original with a unified multi-mode menu, custom provider support, and static model selection
+- **[gui.codes](https://www.gui.codes/articles/claude-code-offline-local-models)** — Original blog post demonstrating Claude Code → LM Studio redirection
+- **[@gmotzespina](https://github.com/gmotzespina)** — Creator of the original `claude-launcher.sh`
+- This project extends the original with a unified multi-mode menu, custom provider support, static model selection, and a Python rewrite for cross-platform support

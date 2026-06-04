@@ -1,9 +1,12 @@
 {
+  "version": 2,
   "providers": {
     "Deepseek": {
+      "description": "DeepSeek API (Anthropic-compatible endpoint)",
+      "website": "https://platform.deepseek.com",
       "env": {
         "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
-        "ANTHROPIC_AUTH_TOKEN": "<your_deepseek_api_key>",
+        "ANTHROPIC_AUTH_TOKEN": "$DEEPSEEK_API_KEY",
         "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
         "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
@@ -33,10 +36,12 @@
       ]
     },
     "OpenRouter": {
+      "description": "OpenRouter — unified API for many model providers",
+      "website": "https://openrouter.ai",
       "env": {
-        "OPENROUTER_API_KEY": "<your_openrouter_api_key>",
+        "OPENROUTER_API_KEY": "$OPENROUTER_API_KEY",
         "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
-        "ANTHROPIC_AUTH_TOKEN": "your_openrouter_api_key",
+        "ANTHROPIC_AUTH_TOKEN": "$OPENROUTER_API_KEY",
         "ANTHROPIC_MODEL": "poolside/laguna-m.1:free",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
         "CLAUDE_CODE_EFFORT_LEVEL": "max"
