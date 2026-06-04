@@ -8,12 +8,11 @@ An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude
 
 > **v2.0.0** — Rewritten in Python. Zero new dependencies, native Windows support, env-var references for API keys (no secrets in config files), and the interactive menu now loops after Claude exits.
 
-<details>
-  <summary>📸 View screenshot</summary>
-  <p align="center">
+<p align="center">
+  <a href="clp.png">
     <img src="clp.png" alt="Claude Code Launcher Plus — interactive menu" width="680">
-  </p>
-</details>
+  </a>
+</p>
 
 ### Why This Exists
 
