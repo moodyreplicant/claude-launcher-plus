@@ -75,3 +75,30 @@ python3 -m json.tool providers.json > /dev/null  # config
 bash -n install.sh && bash -n uninstall.sh        # shell scripts
 python3 claude-launcher-plus.py --dry-run custom  # validate
 ```
+
+---
+
+# Release v2.0.2 — Cold-start crash fixes
+
+**Tag:** `v2.0.2`
+**Date:** 2026-06-04
+**Branch:** `fix/cold-start-menu-recovery-and-status-crash` (squash-merged to `main`)
+
+## Fixed
+
+- **Interactive menu no longer exits on local mode abort.** Declining "Wait and
+  retry?" or having zero models loaded in LM Studio now returns to the menu
+  instead of killing the process. (`launch_local()` used `sys.exit(1)` in three
+  places where `launch_cloud()` and `launch_custom()` correctly used `return`.)
+
+- **Read-only commands no longer crash on missing env vars.** `clp status`,
+  `clp list-providers`, and `clp list-models` no longer call
+  `_resolve_env_value()` at load time. `$VAR` references in `providers.json`
+  are now resolved only at launch time, when `launch_custom()` has confirmed
+  which provider the user wants. Missing env vars still produce a clear error
+  message — but only when you actually try to launch, not when browsing.
+
+- **Custom provider abort returns to menu.** Picking a provider whose env var
+  is missing now prints the error and returns to the interactive menu rather
+  than exiting. `_resolve_env_value()` raises `ProviderConfigError` instead of
+  calling `sys.exit(1)`; `launch_custom()` catches it and returns gracefully.
