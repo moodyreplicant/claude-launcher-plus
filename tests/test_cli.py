@@ -28,21 +28,27 @@ class TestCliParsing:
     def test_dry_run_local(self, capsys: pytest.CaptureFixture[str]) -> None:
         """--dry-run local runs validation without launching."""
         with patch.object(sys, "argv", ["claude-launcher-plus", "--dry-run", "local"]):
-            main()
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
         captured = capsys.readouterr()
         assert "Dry-run validation" in captured.out
 
     def test_dry_run_cloud(self, capsys: pytest.CaptureFixture[str]) -> None:
         """--dry-run cloud runs validation."""
         with patch.object(sys, "argv", ["claude-launcher-plus", "--dry-run", "cloud"]):
-            main()
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
         captured = capsys.readouterr()
         assert "Dry-run validation" in captured.out
 
     def test_dry_run_custom(self, capsys: pytest.CaptureFixture[str]) -> None:
         """--dry-run custom runs validation including providers check."""
         with patch.object(sys, "argv", ["claude-launcher-plus", "--dry-run", "custom"]):
-            main()
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
         captured = capsys.readouterr()
         assert "Dry-run validation" in captured.out
 
