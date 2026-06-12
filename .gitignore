@@ -1,3 +1,15 @@
 /docs/
 report.md
 CLAUDE.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+*.egg
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.pyc
