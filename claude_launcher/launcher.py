@@ -41,12 +41,15 @@ from claude_launcher.config import (
     reset_settings,
     save_settings,
 )
+from claude_launcher.logger import get_logger
 from claude_launcher.providers import (
     ProviderConfigError,
     _resolve_provider_cfg,
     load_providers,
 )
 from claude_launcher.utils import C, _is_interactive, confirm_launch, pick_from_list
+
+logger = get_logger("launcher")
 
 # -- LM Studio client (stdlib urllib) --------------------------------
 
@@ -149,7 +152,9 @@ def _run_claude(claude_args: List[str]) -> int:
     """
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
-    return subprocess.run(["claude"] + claude_args).returncode
+    cmd = ["claude"] + claude_args
+    logger.info("launching claude subprocess: %s", cmd)
+    return subprocess.run(cmd).returncode
 
 
 def _check_dep(name: str) -> bool:
@@ -162,6 +167,7 @@ def _check_dep(name: str) -> bool:
 
 def launch_local(claude_args: List[str]) -> None:
     """Launch Claude Code against a local LM Studio instance."""
+    logger.info("local mode selected")
     print(f"{C.BLUE}{C.BOLD}🖥  Local Mode (LM Studio){C.NC}\n")
     if not check_lm_studio():
         print(f"{C.RED}✗ LM Studio not responding at {LM_STUDIO_URL}{C.NC}")
@@ -213,11 +219,13 @@ def launch_local(claude_args: List[str]) -> None:
     print("  ─────────────────────────────────")
     exit_code = _run_claude(claude_args)
     if exit_code != 0:
+        logger.warning("Claude Code exited with code %d", exit_code)
         print(f"\n  {C.YELLOW}Claude Code exited with code {exit_code}.{C.NC}")
 
 
 def launch_cloud(claude_args: List[str]) -> None:
     """Launch Claude Code against Anthropic's API (OAuth)."""
+    logger.info("cloud mode selected")
     print(f"{C.BLUE}{C.BOLD}☁️  Cloud Mode (Anthropic){C.NC}\n")
     if not confirm_launch(
         "Cloud Mode (Anthropic)",
@@ -230,11 +238,13 @@ def launch_cloud(claude_args: List[str]) -> None:
     print("  ─────────────────────────────────────")
     exit_code = _run_claude(claude_args)
     if exit_code != 0:
+        logger.warning("Claude Code exited with code %d", exit_code)
         print(f"\n  {C.YELLOW}Claude Code exited with code {exit_code}.{C.NC}")
 
 
 def launch_custom(claude_args: List[str]) -> None:
     """Launch Claude Code against a custom provider from providers.json."""
+    logger.info("custom provider mode selected")
     print(f"{C.BLUE}{C.BOLD}🔧 Custom Provider Mode{C.NC}\n")
     providers = load_providers()
     if not providers:
@@ -301,6 +311,7 @@ def launch_custom(claude_args: List[str]) -> None:
     print("  ─────────────────────────────────────")
     exit_code = _run_claude(claude_args)
     if exit_code != 0:
+        logger.warning("Claude Code exited with code %d", exit_code)
         print(f"\n  {C.YELLOW}Claude Code exited with code {exit_code}.{C.NC}")
 
 

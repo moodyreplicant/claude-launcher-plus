@@ -15,7 +15,10 @@ import sys
 from typing import Any, Dict
 
 from claude_launcher.config import PROVIDERS_FILE
+from claude_launcher.logger import get_logger
 from claude_launcher.utils import C
+
+logger = get_logger("providers")
 
 
 class ProviderConfigError(Exception):
@@ -74,6 +77,7 @@ def _resolve_provider_cfg(name: str, cfg: Dict[str, Any]) -> None:
     Raises ProviderConfigError if any env var can't be resolved.
     Only called at launch time — not during read-only operations like status.
     """
+    logger.debug("resolving provider config: %s", name)
     if "env" in cfg:
         cfg["env"] = {k: _resolve_env_value(v, name) for k, v in cfg["env"].items()}
     for model in cfg.get("models", []):
@@ -91,7 +95,9 @@ def load_providers() -> Dict[str, Any]:
     Exits with code 1 on invalid JSON.
     """
     if not PROVIDERS_FILE.exists():
+        logger.debug("providers.json not found, returning empty")
         return {}
+    logger.debug("loading providers from %s", PROVIDERS_FILE)
     try:
         data = json.loads(PROVIDERS_FILE.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, IOError) as e:

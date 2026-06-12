@@ -23,8 +23,11 @@ from claude_launcher.launcher import (
     print_lm_studio_status,
     show_status,
 )
+from claude_launcher.logger import configure_logging, get_logger
 from claude_launcher.providers import load_providers
 from claude_launcher.utils import C
+
+logger = get_logger("cli")
 
 
 def main() -> None:
@@ -72,6 +75,12 @@ def main() -> None:
         version=f"claude-launcher-plus v{VERSION}",
     )
     parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable DEBUG-level logging",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate configuration without launching Claude Code",
@@ -82,6 +91,9 @@ def main() -> None:
         help="Arguments passed through to 'claude' (use -- to separate)",
     )
     args = parser.parse_args()
+
+    configure_logging(verbose=args.verbose)
+    logger.debug("started with args: %s", sys.argv[1:])
 
     if args.mode in ("local", "cloud", "custom", None) and not _check_dep("claude"):
         print(

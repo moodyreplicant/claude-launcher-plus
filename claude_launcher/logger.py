@@ -1,20 +1,107 @@
-"""Logging configuration for claude-launcher-plus."""
+"""Logging configuration for claude-launcher-plus.
 
-__all__ = ["configure_logging"]
+Provides structured (JSON) and human-readable logging with optional
+log file output and rotation. Call ``configure_logging()`` at startup
+to set up the root logger.
+"""
 
+__all__ = [
+    "configure_logging",
+    "LOGGER_NAME",
+]
+
+import json
 import logging
+import logging.handlers
 import sys
+from pathlib import Path
+from typing import Any, Optional
+
+LOGGER_NAME = "claude-launcher"
+LOG_DIR = Path.home() / ".claude" / "logs"
 
 
-def configure_logging(verbose: bool = False) -> None:
-    """Configure logging with optional verbose (DEBUG) mode.
+class JsonFormatter(logging.Formatter):
+    """Format log records as JSON lines for machine parsing.
 
-    Phase 3 will enhance this with structured JSON output and log rotation.
+    Produces one JSON object per line with keys: timestamp, level,
+    logger, message, and optional exception_info.
     """
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s: %(message)s",
-        stream=sys.stdout,
-        force=True,
-    )
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format a log record as a JSON string."""
+        data: dict[str, Any] = {
+            "timestamp": self.formatTime(record, datefmt="%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if (
+            record.exc_info
+            and record.exc_info[0]
+            and not isinstance(record.exc_info, bool)
+        ):
+            data["exception"] = self.formatException(record.exc_info)
+        return json.dumps(data, ensure_ascii=False)
+
+
+class HumanFormatter(logging.Formatter):
+    """Format log records as human-readable lines."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format with timestamp, level, and message."""
+        return (
+            f"{self.formatTime(record, datefmt='%H:%M:%S')} "
+            f"{record.levelname:<5} {record.getMessage()}"
+        )
+
+
+def configure_logging(
+    verbose: bool = False,
+    log_file: Optional[Path] = None,
+    json_output: bool = False,
+) -> None:
+    """Configure the root logger.
+
+    Args:
+        verbose: Enable DEBUG-level logging (default: INFO).
+        log_file: Path to an optional log file. If not provided, logs
+            go to stdout only. Log files automatically rotate at 5 MB.
+        json_output: If True, emit JSON-formatted log lines instead of
+            human-readable text.
+    """
+    logger = logging.getLogger(LOGGER_NAME)
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    logger.handlers.clear()
+
+    # Always log to stdout
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    stdout_handler.setFormatter(JsonFormatter() if json_output else HumanFormatter())
+    logger.addHandler(stdout_handler)
+
+    # Optional file handler with rotation
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=5 * 1024 * 1024,  # 5 MB
+            backupCount=3,
+            encoding="utf-8",
+        )
+        file_handler.setLevel(logging.DEBUG)  # always capture everything
+        file_handler.setFormatter(JsonFormatter())
+        logger.addHandler(file_handler)
+
+
+def get_logger(name: Optional[str] = None) -> logging.Logger:
+    """Return a child logger of the claude-launcher namespace.
+
+    Usage::
+
+        logger = get_logger(__name__)
+        logger.info("launching %s", mode)
+    """
+    if name:
+        return logging.getLogger(f"{LOGGER_NAME}.{name}")
+    return logging.getLogger(LOGGER_NAME)

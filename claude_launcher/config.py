@@ -25,7 +25,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, cast
 
+from claude_launcher.logger import get_logger
 from claude_launcher.utils import C, atomic_write
+
+logger = get_logger("config")
 
 # -- Path constants --------------------------------------------------
 
@@ -72,6 +75,7 @@ def load_settings() -> Dict[str, Any]:
     except (json.JSONDecodeError, IOError) as e:
         bak = Path(str(CLAUDE_SETTINGS) + ".bak")
         shutil.copy2(CLAUDE_SETTINGS, bak)
+        logger.warning("settings.json corrupted: %s — backed up to %s", e, bak)
         print(
             f"  {C.YELLOW}Warning: settings.json corrupted ({e}){C.NC}",
             file=sys.stderr,
@@ -86,6 +90,7 @@ def reset_settings() -> Dict[str, Any]:
     Returns the cleaned dict (does NOT write to disk).
     """
     d = load_settings()
+    logger.debug("reset_settings: loaded %d top-level keys", len(d))
     d.pop("apiKeyHelper", None)
     d.pop("ANTHROPIC_AUTH_TOKEN", None)
     env = d.get("env")
@@ -104,6 +109,7 @@ def save_settings(d: Dict[str, Any]) -> None:
     """
     if not isinstance(d, dict):
         raise TypeError(f"save_settings expects a dict, got {type(d).__name__}")
+    logger.info("saving settings (%d keys)", len(d))
     atomic_write(CLAUDE_SETTINGS, d)
 
 
