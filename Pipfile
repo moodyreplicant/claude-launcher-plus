@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+# Runtime packages – none required for bootstrapping
+
+[dev-packages]
+pipenv = "*"
+pre-commit = "*"
+bandit = "*"
+safety = "*"
+mypy = "*"
+flake8 = "*"
+black = "*"
+isort = "*"
+pytest = "*"
+
+[requires]
+python_version = "3.6"
