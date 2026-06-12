@@ -6,7 +6,7 @@
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
 
-> **v2.0.0** — Rewritten in Python. Zero new dependencies, native Windows support, env-var references for API keys (no secrets in config files), and the interactive menu now loops after Claude exits.
+> **v2.0.2** — Rewritten in Python with a modular package structure, 7 modules, and 120+ tests. Features JSON Schema validation, structured logging, checksum-verified atomic writes, secret redaction, and full non-interactive mode for CI.
 
 <p align="center">
   <a href="clp.png">
@@ -23,7 +23,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 - Static model selection so you can switch between multiple models per provider without editing files
 - DeepSeek and OpenRouter support out of the box
 - CLI subcommands for scripting and automation
-- **New in v2.0.0:** Python rewrite, Windows support, env-var API key references, menu looping
+- **v2.0.2:** Modular Python package, 120+ test suite, JSON Schema validation, structured logging, atomic writes with corruption detection, secret redaction, `--non-interactive` flag, `check-deps` command, `--allow-scripts` gate
 
 ---
 
@@ -41,7 +41,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 
 | Dependency | Check | Needed For |
 |-----------|-------|------------|
-| `python3` 3.6+ | `python3 --version` | Runtime (macOS 12+ / Ubuntu 20.04+ ship 3.9+) |
+| `python3` 3.11+ | `python3 --version` | Runtime (macOS 14+ ships 3.11+) |
 | `claude` | `claude --version` | Claude Code CLI (installed separately) |
 | `curl` | `curl --version` | LM Studio health checks (optional — `urllib` fallback) |
 
@@ -88,9 +88,9 @@ Then add the folder to your PATH, or run via the `.bat` wrapper.
 ### Manual Install (any platform)
 
 ```bash
-# Download and make executable
-chmod +x claude-launcher-plus.py
-./claude-launcher-plus.py   # interactive menu
+# Requires pipenv environment (see Development section)
+pipenv install --dev
+pipenv run python3 claude-launcher-plus.py   # interactive menu
 ```
 
 ---
@@ -205,20 +205,26 @@ clp
 
 ```bash
 # Launch modes
-clp local          # LM Studio
-clp cloud          # Anthropic OAuth
-clp custom         # Custom provider (with model picker)
+clp local               # LM Studio
+clp cloud               # Anthropic OAuth
+clp custom              # Custom provider (with model picker)
 
 # Status & discovery
-clp status         # Show config + LM Studio status
-clp list-providers     # List configured providers
-clp list-models OpenRouter    # List models for a provider
+clp status              # Show config + LM Studio status
+clp list-providers      # List configured providers
+clp list-models OpenRouter   # List models for a provider
+clp check-deps          # Check all required dependencies
 
 # Validation (no launch)
-clp --dry-run custom    # Validate config + connectivity
+clp --dry-run           # Validate all configs + connectivity
+clp --dry-run custom    # Validate specific mode
 
-# Help
+# Options
+clp --verbose           # Enable debug logging
+clp --non-interactive   # Skip all prompts (for scripts/CI)
+clp --allow-scripts     # Allow key helper script generation
 clp --help
+clp --version
 ```
 
 ---
@@ -306,7 +312,62 @@ The uninstaller will:
 
 ---
 
-## Troubleshooting
+## Development
+
+### Project Structure
+
+The launcher is organized as a Python package under `claude_launcher/`:
+
+```
+claude-launcher-plus.py     # Entry point shim (delegates to package)
+claude_launcher/
+  __init__.py               # Version constant
+  cli.py                    # Argument parsing and dispatch
+  config.py                 # Settings management, path constants
+  launcher.py               # Launch modes, LM Studio client, status, menu
+  logger.py                 # Structured logging (JSON + human-readable)
+  providers.py              # Provider config loading, $VAR resolution, schema validation
+  utils.py                  # Color helpers, atomic write, input sanitization, file locking
+tests/                      # 120+ tests (pytest + coverage)
+```
+
+### Setting Up a Dev Environment
+
+```bash
+pipenv install --dev
+pipenv run pre-commit install  # installs lint hooks
+pipenv run pytest tests/       # run tests
+pipenv run mypy claude_launcher/  # type check
+```
+
+### Running Tests
+
+```bash
+pipenv run pytest tests/                    # all tests
+pipenv run pytest tests/ -v                # verbose
+pipenv run pytest tests/ --cov=claude_launcher/  # with coverage
+```
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| `pipenv` over `requirements.txt` | Deterministic lock file with hash verification |
+| Standard library `urllib` instead of `requests` | Zero external runtime dependencies (besides `jsonschema`) |
+| `os.replace()` for atomic writes | Crash-safe file updates on all platforms |
+| `fcntl.flock` for file locking | Advisory locking prevents concurrent write corruption |
+| `$VAR` env-var references | API keys stay in environment, never in config files |
+| `NO_COLOR` compliance | Respects the no-color.org convention |
+| JSON Schema validation | Runtime validation of `providers.json` with clear error messages |
+
+### Migration from Single-File Version
+
+If you have the old single-file launcher (pre-2.0.2), the git history preserves the
+original code at earlier commits. The package structure (`claude_launcher/`) was
+introduced in Phase 1 of the refactor. The entry point `claude-launcher-plus.py`
+remains as a thin shim for backward compatibility.
+
+---
 
 **"LM Studio: offline" but server is running**
 Make sure the LM Studio API server is started. Check: `curl http://localhost:1234/api/v1/models`
@@ -316,6 +377,16 @@ Make sure the LM Studio API server is started. Check: `curl http://localhost:123
 - v2 format: make sure `DEEPSEEK_API_KEY` (or your provider's env var) is exported
 - v1 format: check `ANTHROPIC_AUTH_TOKEN` matches your API key
 - Run `clp --dry-run custom` to validate without launching
+
+**"Error: 'claude' not found in PATH"**
+Claude Code must be installed separately. Run `claude --version` first.
+If installed but not found, make sure it's in your PATH. Restart your terminal after installation.
+
+**Dry-run exits with code 1**
+Run `clp --dry-run --verbose` to see detailed logs. Common issues:
+- A provider has unresolvable `$VAR` references (export the variable first)
+- `providers.json` has a schema validation error (run `clp check-deps`)
+- The `claude` binary is not installed or not in PATH
 
 **"Missing required dependencies"**
 ```bash
