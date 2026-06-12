@@ -8,14 +8,16 @@ to set up the root logger.
 __all__ = [
     "configure_logging",
     "LOGGER_NAME",
+    "SecretRedactionFilter",
 ]
 
 import json
 import logging
 import logging.handlers
+import re
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 LOGGER_NAME = "claude-launcher"
 LOG_DIR = Path.home() / ".claude" / "logs"
@@ -56,6 +58,48 @@ class HumanFormatter(logging.Formatter):
         )
 
 
+# Patterns for values that should never appear in logs.
+# These match common API key and auth token formats.
+_SECRET_PATTERNS: List[re.Pattern[str]] = [
+    re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),  # Anthropic API keys
+    re.compile(r"\b[A-Za-z0-9+/=]{40,}\b"),  # base64-like tokens (40+ chars)
+    re.compile(
+        r"(?i)(api[_-]?key|auth[_-]?token|secret)" r"\s*[:=]\s*\S+"
+    ),  # inline key assignments
+]
+
+# The replacement for any matched secret.
+_REDACTED = "[REDACTED]"
+
+
+class SecretRedactionFilter(logging.Filter):
+    """Logging filter that redacts sensitive information from log records.
+
+    Attach to any handler that might log messages containing API keys,
+    auth tokens, or other secrets. Redaction happens on the formatted
+    message before output.
+    """
+
+    def __init__(self, name: str = "") -> None:
+        super().__init__(name)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Redact secrets from the log message in-place."""
+        if isinstance(record.msg, str):
+            for pattern in _SECRET_PATTERNS:
+                record.msg = pattern.sub(_REDACTED, record.msg)
+        # Also redact args that might contain secrets
+        if record.args:
+            sanitized: List[Any] = []
+            for arg in record.args:
+                if isinstance(arg, str):
+                    for pattern in _SECRET_PATTERNS:
+                        arg = pattern.sub(_REDACTED, arg)
+                sanitized.append(arg)
+            record.args = tuple(sanitized)
+        return True  # always pass the record through
+
+
 def configure_logging(
     verbose: bool = False,
     log_file: Optional[Path] = None,
@@ -78,6 +122,7 @@ def configure_logging(
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
     stdout_handler.setFormatter(JsonFormatter() if json_output else HumanFormatter())
+    stdout_handler.addFilter(SecretRedactionFilter())
     logger.addHandler(stdout_handler)
 
     # Optional file handler with rotation
@@ -91,6 +136,7 @@ def configure_logging(
         )
         file_handler.setLevel(logging.DEBUG)  # always capture everything
         file_handler.setFormatter(JsonFormatter())
+        file_handler.addFilter(SecretRedactionFilter())
         logger.addHandler(file_handler)
 
 
