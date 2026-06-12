@@ -186,9 +186,9 @@ def _check_dep(name: str) -> bool:
     )
 
 
-def launch_local(claude_args: List[str]) -> None:
+def launch_local(claude_args: List[str], allow_scripts: bool = False) -> None:
     """Launch Claude Code against a local LM Studio instance."""
-    logger.info("local mode selected")
+    logger.info("local mode selected (allow_scripts=%s)", allow_scripts)
     print(f"{C.BLUE}{C.BOLD}🖥  Local Mode (LM Studio){C.NC}\n")
     if not check_lm_studio():
         print(f"{C.RED}✗ LM Studio not responding at {LM_STUDIO_URL}{C.NC}")
@@ -218,14 +218,21 @@ def launch_local(claude_args: List[str]) -> None:
     ):
         return
 
-    # Write apiKeyHelper — shell-quoted, owner-only, no TOCTOU window
-    KEY_HELPER.parent.mkdir(parents=True, exist_ok=True)
-    content = f"#!/bin/bash\necho {shlex.quote(LM_STUDIO_API_KEY)}\n"
-    fd = os.open(str(KEY_HELPER), os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o700)
-    try:
-        os.write(fd, content.encode())
-    finally:
-        os.close(fd)
+    # Write apiKeyHelper — only if user opted in via --allow-scripts
+    if allow_scripts:
+        KEY_HELPER.parent.mkdir(parents=True, exist_ok=True)
+        content = f"#!/bin/bash\necho {shlex.quote(LM_STUDIO_API_KEY)}\n"
+        fd = os.open(str(KEY_HELPER), os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o700)
+        try:
+            os.write(fd, content.encode())
+        finally:
+            os.close(fd)
+    else:
+        logger.info("--allow-scripts not set; skipping apiKeyHelper write")
+        print(
+            f"  {C.YELLOW}Note: --allow-scripts not set."
+            f" Local mode key helper not written.{C.NC}"
+        )
 
     os.environ["ANTHROPIC_MODEL"] = chosen
     os.environ["ANTHROPIC_BASE_URL"] = LM_STUDIO_URL

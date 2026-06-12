@@ -81,6 +81,11 @@ def main() -> None:
         help="Enable DEBUG-level logging",
     )
     parser.add_argument(
+        "--allow-scripts",
+        action="store_true",
+        help="Allow writing api-key-helper.sh (required for local mode key helper)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate configuration without launching Claude Code",
@@ -94,6 +99,10 @@ def main() -> None:
 
     configure_logging(verbose=args.verbose)
     logger.debug("started with args: %s", sys.argv[1:])
+
+    from claude_launcher.config import check_directory_permissions
+
+    check_directory_permissions()
 
     if args.mode in ("local", "cloud", "custom", None) and not _check_dep("claude"):
         print(
@@ -133,7 +142,7 @@ def main() -> None:
         ca = ca[1:]
 
     dispatch: dict[str, Callable[[], None]] = {
-        "local": lambda: launch_local(ca),
+        "local": lambda: launch_local(ca, allow_scripts=args.allow_scripts),
         "cloud": lambda: launch_cloud(ca),
         "custom": lambda: launch_custom(ca),
         "status": show_status,

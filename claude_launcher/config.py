@@ -16,11 +16,13 @@ __all__ = [
     "reset_settings",
     "save_settings",
     "ensure_onboarding_done",
+    "check_directory_permissions",
 ]
 
 import json
 import os
 import shutil
+import stat
 import sys
 from pathlib import Path
 from typing import Any, Dict, cast
@@ -125,3 +127,33 @@ def ensure_onboarding_done() -> None:
     d["hasCompletedOnboarding"] = True
     CLAUDE_JSON.parent.mkdir(parents=True, exist_ok=True)
     atomic_write(CLAUDE_JSON, d)
+
+
+def check_directory_permissions() -> None:
+    """Verify that the Claude configuration directory has safe permissions.
+
+    Warns via logger if the directory is world-readable or world-writable.
+    """
+    from claude_launcher.utils import C
+
+    config_dir = CLAUDE_SETTINGS.parent
+    if not config_dir.exists():
+        logger.debug(
+            "config directory %s does not exist, skipping permission check", config_dir
+        )
+        return
+
+    mode = stat.S_IMODE(os.stat(str(config_dir)).st_mode)
+    # Check "other" permissions (world): warn if readable or writable
+    if mode & stat.S_IROTH:
+        logger.warning("config directory %s is world-readable (%04o)", config_dir, mode)
+        print(
+            f"  {C.YELLOW}Warning: {config_dir} is world-readable.{C.NC}",
+            file=sys.stderr,
+        )
+    if mode & stat.S_IWOTH:
+        logger.warning("config directory %s is world-writable (%04o)", config_dir, mode)
+        print(
+            f"  {C.RED}Security: {config_dir} is world-writable!{C.NC}",
+            file=sys.stderr,
+        )
