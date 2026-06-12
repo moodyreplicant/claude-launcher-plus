@@ -235,9 +235,26 @@ def safe_read(path: Path, verify: bool = True) -> Dict[str, Any]:
 
 # -- Interactive UI helpers -----------------------------------------
 
+# Global flag — set by cli.py when ``--non-interactive`` is passed.
+# Overrides the TTY check so scripts and CI can force non-interactive
+# behaviour even when running in a TTY.
+FORCE_NON_INTERACTIVE = False
+
+
+def set_non_interactive() -> None:
+    """Force non-interactive mode, overriding TTY detection.
+
+    Called by ``cli.py`` when the ``--non-interactive`` flag is passed.
+    All ``input()`` prompts will be skipped or use defaults.
+    """
+    global FORCE_NON_INTERACTIVE
+    FORCE_NON_INTERACTIVE = True
+
 
 def _is_interactive() -> bool:
-    """Check if stdin is a TTY (interactive terminal)."""
+    """Check if stdin is a TTY and ``--non-interactive`` was not set."""
+    if FORCE_NON_INTERACTIVE:
+        return False
     return sys.stdin.isatty()
 
 

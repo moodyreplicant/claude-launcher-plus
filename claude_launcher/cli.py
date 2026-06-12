@@ -86,6 +86,11 @@ def main() -> None:
         help="Allow writing api-key-helper.sh (required for local mode key helper)",
     )
     parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Skip all interactive prompts (use defaults, exit on ambiguity)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate configuration without launching Claude Code",
@@ -99,6 +104,12 @@ def main() -> None:
 
     configure_logging(verbose=args.verbose)
     logger.debug("started with args: %s", sys.argv[1:])
+
+    if args.non_interactive:
+        from claude_launcher.utils import set_non_interactive
+
+        set_non_interactive()
+        logger.debug("non-interactive mode enabled")
 
     from claude_launcher.config import check_directory_permissions
 

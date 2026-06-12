@@ -78,6 +78,17 @@ class TestCliParsing:
         captured = capsys.readouterr()
         assert "Status" in captured.out
 
+    def test_non_interactive_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """--non-interactive flag is accepted."""
+        # Reset first
+        import claude_launcher.utils as u
+        from claude_launcher.utils import _is_interactive, set_non_interactive
+
+        u.FORCE_NON_INTERACTIVE = False
+        set_non_interactive()
+        assert _is_interactive() is False
+        u.FORCE_NON_INTERACTIVE = False
+
     def test_help_shows_allow_scripts(self) -> None:
         """--help output mentions --allow-scripts."""
         with patch.object(sys, "argv", ["claude-launcher-plus", "--help"]):

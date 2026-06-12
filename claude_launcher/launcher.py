@@ -508,6 +508,13 @@ def list_models(provider_name: Optional[str] = None) -> None:
 
 def interactive_menu() -> None:
     """Main loop. Returns after each Claude session exits."""
+    if not _is_interactive():
+        print(
+            f"{C.RED}Interactive menu requires a TTY."
+            f" Use 'local', 'cloud', or 'custom' subcommands.{C.NC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     while True:
         try:
             print(f"\n{C.BOLD}┌─────────────────────────────────────┐{C.NC}")
