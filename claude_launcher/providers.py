@@ -12,13 +12,19 @@ __all__ = [
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict
+
+import jsonschema
 
 from claude_launcher.config import PROVIDERS_FILE
 from claude_launcher.logger import get_logger
 from claude_launcher.utils import C
 
 logger = get_logger("providers")
+
+# Schema file path — relative to this module's location in the package.
+_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "providers.schema.json"
 
 
 class ProviderConfigError(Exception):
@@ -115,6 +121,20 @@ def _resolve_provider_cfg(name: str, cfg: Dict[str, Any]) -> None:
             }
 
 
+def _validate_with_schema(data: Dict[str, Any]) -> None:
+    """Validate provider data against the JSON Schema.
+
+    Raises jsonschema.ValidationError if data doesn't conform,
+    or FileNotFoundError if the schema file can't be found.
+    """
+    if not _SCHEMA_PATH.exists():
+        logger.warning("schema file not found at %s, skipping validation", _SCHEMA_PATH)
+        return
+    schema = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+    jsonschema.validate(data, schema)
+    logger.debug("providers.json schema validation passed")
+
+
 def load_providers() -> Dict[str, Any]:
     """Load and validate providers.json.
 
@@ -131,6 +151,16 @@ def load_providers() -> Dict[str, Any]:
     except (json.JSONDecodeError, IOError) as e:
         print(
             f"  {C.RED}Error: providers.json is invalid: {e}{C.NC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Validate against JSON Schema (respects version, structure, types)
+    try:
+        _validate_with_schema(data)
+    except (jsonschema.ValidationError, FileNotFoundError) as e:
+        print(
+            f"  {C.RED}Error: providers.json schema validation failed: {e}{C.NC}",
             file=sys.stderr,
         )
         sys.exit(1)
