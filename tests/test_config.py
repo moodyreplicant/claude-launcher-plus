@@ -212,3 +212,19 @@ class TestDirectoryPermissions:
             check_directory_permissions()
         captured = capsys.readouterr()
         assert "Warning" not in captured.out
+
+    def test_world_readable_warns(
+        self, capsys: pytest.CaptureFixture[str], tmp_path: Path
+    ) -> None:
+        """World-readable directory produces security warning."""
+        from claude_launcher.config import check_directory_permissions
+
+        config_dir = tmp_path / ".claude_readable"
+        config_dir.mkdir(mode=0o705)  # world-readable (common umask result)
+        settings_file = config_dir / "settings.json"
+        with patch("claude_launcher.config.CLAUDE_SETTINGS", settings_file):
+            check_directory_permissions()
+        captured = capsys.readouterr()
+        # Warning is printed to stderr
+        combined = captured.out + captured.err
+        assert "world-readable" in combined or "Warning" in combined

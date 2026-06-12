@@ -190,6 +190,17 @@ class TestFileLock:
             os.close(fd)
 
 
+class TestFileLockNoFcntl:
+    """FileLock behavior on platforms without fcntl."""
+
+    def test_noop_without_fcntl(self, tmp_path: Path) -> None:
+        """FileLock is a no-op when fcntl is not available."""
+        with patch("claude_launcher.utils.HAS_FCNTL", False):
+            lock_path = tmp_path / "test_noop.lock"
+            with FileLock(lock_path):
+                pass  # should not raise
+
+
 class TestColorHelpers:
     """c() and strip_ansi() color helpers."""
 

@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import jsonschema
@@ -89,6 +90,28 @@ class TestResolveEnvValue:
             _resolve_env_value("$NONEXISTENT_VAR_12345", "test")
 
 
+class TestResolveProviderCfg:
+    """_resolve_provider_cfg() end-to-end."""
+
+    def test_resolves_with_models(self) -> None:
+        """Provider with models has env vars resolved."""
+        from claude_launcher.providers import _resolve_provider_cfg
+
+        cfg: dict[str, Any] = {
+            "env": {"BASE_URL": "https://example.com"},
+            "models": [
+                {"name": "M1", "env": {"MODEL": "m1"}},
+                {"name": "M2"},
+            ],
+        }
+        with patch.dict("os.environ", {}, clear=True):
+            # Without env vars, it should fail for $VAR refs
+            # But with plain values, it should pass
+            _resolve_provider_cfg("test", cfg)
+            assert cfg["env"]["BASE_URL"] == "https://example.com"
+            assert cfg["models"][0]["env"]["MODEL"] == "m1"
+
+
 class TestValidateWithSchema:
     """_validate_with_schema() JSON Schema compliance."""
 
@@ -146,6 +169,14 @@ class TestValidateWithSchema:
             },
         }
         _validate_with_schema(data)
+
+    def test_skips_when_schema_missing(self) -> None:
+        """Missing schema file skips validation silently."""
+        with patch(
+            "claude_launcher.providers._SCHEMA_PATH",
+            Path("/tmp/nonexistent_schema.json"),
+        ):
+            _validate_with_schema({"providers": {}})  # should not raise
 
     def test_models_with_env_passes(self) -> None:
         """Provider with models array passes validation."""
