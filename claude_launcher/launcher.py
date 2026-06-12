@@ -153,16 +153,29 @@ def _validate_string_list(val: Any, name: str = "claude_args") -> List[str]:
     return val
 
 
-def _run_claude(claude_args: List[str]) -> int:
+def _run_claude(
+    claude_args: List[str],
+    timeout: Optional[float] = None,
+) -> int:
     """Launch claude subprocess.
 
     Restores default signal handlers so Ctrl+C reaches the child naturally.
+    By default (timeout=None), waits indefinitely for the process to exit.
+    Set timeout to a positive number of seconds to prevent hangs.
     """
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
     cmd = ["claude"] + claude_args
-    logger.info("launching claude subprocess: %s", cmd)
-    return subprocess.run(cmd).returncode
+    logger.info("launching claude subprocess: %s (timeout=%s)", cmd, timeout)
+    try:
+        return subprocess.run(cmd, timeout=timeout).returncode
+    except subprocess.TimeoutExpired:
+        logger.error("claude subprocess timed out after %s seconds", timeout)
+        print(
+            f"\n  {C.RED}Claude Code timed out after {timeout} seconds.{C.NC}",
+            file=sys.stderr,
+        )
+        return -1
 
 
 def _check_dep(name: str) -> bool:
