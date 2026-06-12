@@ -171,9 +171,6 @@ def configure_logging(verbose: bool) -> None:
 | Add `--allow-scripts` flag | Explicit permission for shell helpers
 | Verify directory permissions | Not world-accessible
 | Log warnings for suspicious env values |
-| **NEW**: Credential rotation support | API key management
-| **NEW**: Timeout implementation | For external command execution
-| **NEW**: Sandbox validation | For untrusted configurations
 
 ### Phase 7 – Color Abstraction (Low-Impact)
 | Task | Steps |
@@ -329,119 +326,10 @@ def configure_logging(verbose: bool) -> None:
 4. Start Phase 2 (Security) immediately after Phase 1
 5. Integrate testing throughout development cycle
 
-This revised plan addresses all the feedback while maintaining the original goals of creating a production-ready, maintainable, and user-friendly launcher tool.
-
-## Modularization Strategy
-
-The current monolithic `claude-launcher-plus.py` is a good starting point, but for long‑term maintainability it should be split into focused modules. The suggested layout keeps the public API small while exposing a clean, testable core.
-
-```
-claude_launcher/
-├── __init__.py          # expose public functions (e.g., launch)
-├── cli.py               # argparse / sub‑parsers, flag handling
-├── config.py            # load/save settings.json & providers.json with schema validation
-├── providers.py         # resolve provider env vars, sanitize inputs
-├── launcher.py          # orchestrate the actual launch (atomic writes, subprocess)
-├── utils.py             # helpers: atomic_write, color helper, env sanitization
-└── logger.py            # structured logging configuration
-```
-
-### Why this split?
-1. **Single Responsibility** – each file has one clear purpose.
-2. **Easier Testing** – unit tests can import only the module under test.
-3. **Clear Public API** – consumers import from `claude_launcher` without needing to know internal file names.
-4. **Future Extensibility** – adding a GUI or web wrapper would only touch `cli.py` and the public API.
-
-### Suggested Skeleton (partial)
-```python
-# claude_launcher/cli.py
-import argparse
-from .logger import configure_logging
-from .launcher import launch
-
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="claude-launcher-plus")
-    subparsers = parser.add_subparsers(dest="mode", required=True)
-
-    # local mode
-    p_local = subparsers.add_parser("local", help="Run Claude locally")
-    p_local.add_argument("--dry-run", action="store_true")
-
-    # cloud mode
-    p_cloud = subparsers.add_parser("cloud", help="Run Claude in the cloud")
-
-    parser.add_argument("--verbose", action="store_true")
-    ns = parser.parse_args()
-
-    configure_logging(ns.verbose)
-    launch(ns)  # defined in launcher.py
-
-if __name__ == "__main__":
-    main()
-```
-
-```python
-# claude_launcher/config.py
-import json, pathlib
-from jsonschema import validate
-
-SETTINGS_PATH = pathlib.Path.home() / ".claude" / "settings.json"
-PROVIDERS_PATH = pathlib.Path(__file__).parent / "providers.schema.json"
-
-def load_settings() -> dict:
-    return json.loads(SETTINGS_PATH.read_text())
-
-# … (similar for providers, with validation)
-```
-
-```python
-# claude_launcher/launcher.py
-import subprocess, os
-from .utils import atomic_write
-
-def launch(args) -> int:
-    # resolve provider env vars, write helper script atomically
-    helper_path = atomic_write("/tmp/api-key-helper.sh", build_helper_script(args))
-    # run the claude binary
-    result = subprocess.run(["claude", "--config", str(helper_path)], capture_output=True)
-    # handle exit codes, logging, etc.
-    return result.returncode
-```
-
-```python
-# claude_launcher/utils.py
-def atomic_write(path: str | pathlib.Path, content: str) -> pathlib.Path:
-    """Write content atomically with secure temp file creation."""
-    path = pathlib.Path(path)
-    tmp_fd, tmp_path = tempfile.mkstemp(dir=path.parent, prefix=".tmp_")
-    try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-            f.write(content)
-        os.replace(tmp_path, path)  # atomic rename
-        os.chmod(path, 0o600)  # Restrictive permissions for files
-        return path
-    except Exception:
-        if pathlib.Path(tmp_path).exists():
-            pathlib.Path(tmp_path).unlink()
-        raise
-```
-
-```python
-# claude_launcher/logger.py
-import logging, sys
-
-def configure_logging(verbose: bool) -> None:
-    level = logging.DEBUG if verbose else logging.INFO
-    fmt = "%(asctime)s %(levelname)s: %(message)s"
-    logging.basicConfig(level=level, format=fmt, stream=sys.stdout)
-```
-
----
+See Phase 0 "Project Skeleton" section for the module structure and skeleton code.
 
 ### Test Organization
 - `tests/test_cli.py` – validate argparse parsing
 - `tests/test_config.py` – schema validation & file I/O
 - `tests/test_launcher.py` – mock subprocess, verify atomic writes
 - `tests/test_utils.py` – color helper & sanitization logic
-
-With this structure the plan remains intact, but each phase can be tackled in isolation and verified independently.
