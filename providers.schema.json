@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/moodyreplicant/claude-launcher-plus/providers.schema.json",
+  "$id": "claude-launcher://schemas/providers.schema.json",
   "title": "Claude Launcher Plus — Providers Configuration",
-  "description": "Schema for ~/.claude/providers.json. Supports v1 (plaintext keys) and v2 ($VAR env references).",
+  "description": "Schema for ~/.claude/providers.json. Supports v1 (plaintext keys) and v2 ($VAR env references). Used for runtime validation in load_providers().",
   "type": "object",
   "properties": {
     "version": {
