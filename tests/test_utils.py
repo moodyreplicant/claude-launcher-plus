@@ -188,3 +188,45 @@ class TestFileLock:
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
             os.close(fd)
+
+
+class TestColorHelpers:
+    """c() and strip_ansi() color helpers."""
+
+    def test_c_wraps_in_color(self) -> None:
+        """c() wraps message in color when NO_COLOR is not set."""
+        from claude_launcher.utils import C, c
+
+        result = c(C.GREEN, "hello")
+        assert result.startswith("\033[")
+        assert result.endswith(C.NC)
+        assert "hello" in result
+
+    def test_c_strips_color_when_no_color(self) -> None:
+        """c() returns plain message when NO_COLOR is set."""
+        from claude_launcher.utils import c
+
+        with patch.dict("os.environ", {"NO_COLOR": "1"}):
+            # Need to re-evaluate NO_COLOR; simulate by clearing cached value
+            import claude_launcher.utils as u
+
+            orig = u.NO_COLOR
+            u.NO_COLOR = True
+            try:
+                result = c("", "plain")
+                assert result == "plain"
+            finally:
+                u.NO_COLOR = orig
+
+    def test_strip_ansi_removes_escapes(self) -> None:
+        """strip_ansi() removes all ANSI sequences."""
+        from claude_launcher.utils import strip_ansi
+
+        colored = "\033[0;32mhello\033[0m"
+        assert strip_ansi(colored) == "hello"
+
+    def test_strip_ansi_passes_plain_text(self) -> None:
+        """strip_ansi() leaves plain text unchanged."""
+        from claude_launcher.utils import strip_ansi
+
+        assert strip_ansi("hello world") == "hello world"

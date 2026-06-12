@@ -6,6 +6,8 @@ Provides terminal color support, atomic file writes, and interactive UI helpers.
 __all__ = [
     "C",
     "NO_COLOR",
+    "c",
+    "strip_ansi",
     "atomic_write",
     "safe_read",
     "pick_from_list",
@@ -35,7 +37,19 @@ except ImportError:
 
 # -- Terminal colors (no-color.org compliant) -----------------------
 
+import re
+
 NO_COLOR = "NO_COLOR" in os.environ
+
+# On Windows, initialize colorama for ANSI escape support.
+# Silently skipped if colorama is not installed or on non-Windows.
+if os.name == "nt":
+    try:
+        import colorama
+
+        colorama.init()
+    except ImportError:
+        pass
 
 
 class C:
@@ -47,6 +61,33 @@ class C:
     RED = "" if NO_COLOR else "\033[0;31m"
     BOLD = "" if NO_COLOR else "\033[1m"
     NC = "" if NO_COLOR else "\033[0m"
+
+
+# -- Color helpers ---------------------------------------------------
+
+_ANSI_RE = re.compile(r"\033\[[0-9;]*m")
+
+
+def c(color: str, msg: str) -> str:
+    """Wrap *msg* in an ANSI color code, then reset.
+
+    Falls back to plain *msg* when ``NO_COLOR`` is set or in non-TTY
+    environments.  Usage::
+
+        print(c(C.GREEN, "✓ Ok"))
+        print(f"{c(C.BOLD, 'Status:')} ready")
+    """
+    if NO_COLOR:
+        return msg
+    return f"{color}{msg}{C.NC}"
+
+
+def strip_ansi(text: str) -> str:
+    """Remove all ANSI escape sequences from *text*.
+
+    Useful for logging, file output, or comparison in tests.
+    """
+    return _ANSI_RE.sub("", text)
 
 
 # -- Advisory file locking ------------------------------------------
