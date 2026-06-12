@@ -131,7 +131,7 @@ def _validate_with_schema(data: Dict[str, Any]) -> None:
         logger.warning("schema file not found at %s, skipping validation", _SCHEMA_PATH)
         return
     schema = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
-    jsonschema.validate(data, schema)
+    jsonschema.validate(data, schema, cls=jsonschema.Draft7Validator)
     logger.debug("providers.json schema validation passed")
 
 
