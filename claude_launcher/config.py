@@ -4,6 +4,20 @@ Handles loading and saving settings.json, .claude.json onboarding state,
 and defines path constants for all Claude configuration files.
 """
 
+__all__ = [
+    "CLAUDE_JSON",
+    "CLAUDE_SETTINGS",
+    "PROVIDERS_FILE",
+    "KEY_HELPER",
+    "LM_STUDIO_URL",
+    "LM_STUDIO_API_KEY",
+    "LAUNCHER_ENV_KEYS",
+    "load_settings",
+    "reset_settings",
+    "save_settings",
+    "ensure_onboarding_done",
+]
+
 import json
 import os
 import shutil

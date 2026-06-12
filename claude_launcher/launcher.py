@@ -4,6 +4,21 @@ Handles all launch modes (local, cloud, custom), LM Studio API communication,
 status display, and the interactive menu.
 """
 
+__all__ = [
+    "launch_local",
+    "launch_cloud",
+    "launch_custom",
+    "show_status",
+    "list_providers",
+    "list_models",
+    "interactive_menu",
+    "_run_claude",
+    "_check_dep",
+    "check_lm_studio",
+    "get_lm_studio_models",
+    "print_lm_studio_status",
+]
+
 import json
 import os
 import shlex

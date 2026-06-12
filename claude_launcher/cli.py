@@ -3,6 +3,8 @@
 Parses arguments and dispatches to the appropriate launch mode or command.
 """
 
+__all__ = ["main"]
+
 import argparse
 import sys
 import textwrap

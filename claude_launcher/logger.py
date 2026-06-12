@@ -1,5 +1,7 @@
 """Logging configuration for claude-launcher-plus."""
 
+__all__ = ["configure_logging"]
+
 import logging
 import sys
 

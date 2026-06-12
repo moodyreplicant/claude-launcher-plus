@@ -4,6 +4,11 @@ Handles loading providers.json and resolving $VAR environment variable
 references at launch time.
 """
 
+__all__ = [
+    "ProviderConfigError",
+    "load_providers",
+]
+
 import json
 import os
 import sys
