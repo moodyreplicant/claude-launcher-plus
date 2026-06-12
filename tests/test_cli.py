@@ -89,6 +89,13 @@ class TestCliParsing:
         assert _is_interactive() is False
         u.FORCE_NON_INTERACTIVE = False
 
+    def test_check_deps_command(self) -> None:
+        """check-deps command runs without error."""
+        with patch.object(sys, "argv", ["claude-launcher-plus", "check-deps"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+
     def test_help_shows_allow_scripts(self) -> None:
         """--help output mentions --allow-scripts."""
         with patch.object(sys, "argv", ["claude-launcher-plus", "--help"]):

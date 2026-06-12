@@ -14,6 +14,7 @@ from claude_launcher import VERSION
 from claude_launcher.config import PROVIDERS_FILE, load_settings
 from claude_launcher.launcher import (
     _check_dep,
+    check_all_deps,
     interactive_menu,
     launch_cloud,
     launch_custom,
@@ -48,6 +49,7 @@ def main() -> None:
               claude-launcher-plus list-providers     # List providers
               claude-launcher-plus list-models Deepseek  # List models
               claude-launcher-plus --dry-run custom   # Validate only
+              claude-launcher-plus check-deps          # Check dependencies
         """),
     )
     parser.add_argument(
@@ -60,6 +62,7 @@ def main() -> None:
             "status",
             "list-providers",
             "list-models",
+            "check-deps",
         ],
         help="Launch mode or discovery command (omit for interactive menu)",
     )
@@ -159,6 +162,9 @@ def main() -> None:
         "status": show_status,
         "list-providers": list_providers,
         "list-models": lambda: list_models(args.provider),
+        "check-deps": lambda: (
+            sys.exit(0) if check_all_deps(show_all=True) else sys.exit(1)
+        ),
     }
     action = dispatch.get(args.mode, interactive_menu)
     action()

@@ -17,11 +17,13 @@ __all__ = [
     "check_lm_studio",
     "get_lm_studio_models",
     "print_lm_studio_status",
+    "check_all_deps",
 ]
 
 import json
 import os
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -180,10 +182,49 @@ def _run_claude(
 
 def _check_dep(name: str) -> bool:
     """Check if a command-line tool is available in PATH."""
-    return os.path.isfile(os.path.join(os.environ.get("PATH", ""), name)) or any(
-        os.access(os.path.join(p, name), os.X_OK)
-        for p in os.environ.get("PATH", "").split(os.pathsep)
-    )
+    return shutil.which(name) is not None
+
+
+# Known dependencies: binary name, purpose, install hint.
+DEPENDENCIES: list[dict[str, str]] = [
+    {
+        "binary": "claude",
+        "purpose": "Claude Code CLI (required for all launch modes)",
+        "install": "https://docs.anthropic.com/en/docs/claude-code",
+    },
+]
+
+
+def check_all_deps(show_all: bool = False) -> bool:
+    """Check all known dependencies and report missing ones.
+
+    Args:
+        show_all: If True, show status for all deps (not just missing).
+
+    Returns:
+        True if all required dependencies are found.
+    """
+    all_found = True
+    for dep in DEPENDENCIES:
+        name = dep["binary"]
+        found = _check_dep(name)
+        if not found:
+            all_found = False
+            print(
+                f"  {C.RED}✗ {name}: not found{C.NC}",
+                file=sys.stderr,
+            )
+            print(
+                f"    Needed for: {dep['purpose']}",
+                file=sys.stderr,
+            )
+            print(
+                f"    Install: {dep['install']}",
+                file=sys.stderr,
+            )
+        elif show_all:
+            print(f"  {C.GREEN}✓ {name}: found{C.NC}")
+    return all_found
 
 
 def launch_local(claude_args: List[str], allow_scripts: bool = False) -> None:

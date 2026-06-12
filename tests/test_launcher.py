@@ -127,6 +127,17 @@ class TestLaunchHelpers:
         # without blocking. We just verify it doesn't crash.
         launch_local([])
 
+
+class TestCheckAllDeps:
+    """check_all_deps() dependency reporting."""
+
+    def test_returns_true_when_found(self) -> None:
+        """check_all_deps returns True when all deps found."""
+        from claude_launcher.launcher import check_all_deps
+
+        result = check_all_deps(show_all=False)
+        assert result is True
+
     def test_launch_cloud_requires_no_connection(self) -> None:
         """launch_cloud returns cleanly (confirmation skipped in non-TTY)."""
         from claude_launcher.launcher import launch_cloud
