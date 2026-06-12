@@ -45,6 +45,32 @@ def _validate_provider_structure(data: Any) -> Dict[str, Any]:
     return providers
 
 
+# Characters that are suspicious in provider env values (shell metacharacters
+# and control characters that could enable injection).
+_SUSPICIOUS_CHARS = set(";`$|&><#!{}[]()\\'\"\n\r\t")
+
+
+def _validate_env_value(value: str, context: str = "env value") -> bool:
+    """Check if an env value contains suspicious characters.
+
+    Warns via logger if found, but does NOT block — the value is set via
+    ``os.environ[]`` (not shell interpolation), so the risk is limited to
+    how the ``claude`` subprocess handles these values.
+
+    Returns True if value is clean, False if suspicious chars found.
+    """
+    for i, char in enumerate(value):
+        if char in _SUSPICIOUS_CHARS:
+            logger.warning(
+                "suspicious character %r at position %d in %s",
+                char,
+                i,
+                context,
+            )
+            return False
+    return True
+
+
 def _resolve_env_value(value: str, provider_name: str) -> str:
     """Resolve $VAR / ${VAR} from the environment.
 
@@ -68,7 +94,9 @@ def _resolve_env_value(value: str, provider_name: str) -> str:
             file=sys.stderr,
         )
         raise ProviderConfigError(f"Env var '{var}' is not set")
-    return os.environ[var]
+    resolved = os.environ[var]
+    _validate_env_value(resolved, context=f"${var}")
+    return resolved
 
 
 def _resolve_provider_cfg(name: str, cfg: Dict[str, Any]) -> None:
