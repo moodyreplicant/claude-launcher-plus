@@ -184,3 +184,31 @@ class TestEnsureOnboardingDone:
         data = json.loads(target.read_text())
         assert data["existingKey"] == "value"
         assert data["hasCompletedOnboarding"] is True
+
+
+class TestDirectoryPermissions:
+    """check_directory_permissions() permission warnings."""
+
+    def test_skips_when_dir_missing(self) -> None:
+        """Non-existent directory is skipped without error."""
+        from claude_launcher.config import check_directory_permissions
+
+        with patch(
+            "claude_launcher.config.CLAUDE_SETTINGS",
+            Path("/tmp/nonexistent_claude_dir/settings.json"),
+        ):
+            check_directory_permissions()  # should not raise
+
+    def test_ok_permissions_no_warning(
+        self, capsys: pytest.CaptureFixture[str], tmp_path: Path
+    ) -> None:
+        """Normal directory permissions produce no warnings."""
+        from claude_launcher.config import check_directory_permissions
+
+        config_dir = tmp_path / ".claude"
+        config_dir.mkdir(mode=0o700)
+        settings_file = config_dir / "settings.json"
+        with patch("claude_launcher.config.CLAUDE_SETTINGS", settings_file):
+            check_directory_permissions()
+        captured = capsys.readouterr()
+        assert "Warning" not in captured.out

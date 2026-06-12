@@ -68,3 +68,19 @@ class TestCliParsing:
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 2
+
+    def test_allow_scripts_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """--allow-scripts flag is accepted without error."""
+        with patch.object(
+            sys, "argv", ["claude-launcher-plus", "--allow-scripts", "status"]
+        ):
+            main()
+        captured = capsys.readouterr()
+        assert "Status" in captured.out
+
+    def test_help_shows_allow_scripts(self) -> None:
+        """--help output mentions --allow-scripts."""
+        with patch.object(sys, "argv", ["claude-launcher-plus", "--help"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
