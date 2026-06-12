@@ -98,7 +98,12 @@ def reset_settings() -> Dict[str, Any]:
 
 
 def save_settings(d: Dict[str, Any]) -> None:
-    """Write settings dict to settings.json atomically."""
+    """Write settings dict to settings.json atomically.
+
+    Raises TypeError if d is not a dict (catches programming errors early).
+    """
+    if not isinstance(d, dict):
+        raise TypeError(f"save_settings expects a dict, got {type(d).__name__}")
     atomic_write(CLAUDE_SETTINGS, d)
 
 

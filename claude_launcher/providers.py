@@ -12,7 +12,7 @@ __all__ = [
 import json
 import os
 import sys
-from typing import Any, Dict, cast
+from typing import Any, Dict
 
 from claude_launcher.config import PROVIDERS_FILE
 from claude_launcher.utils import C
@@ -20,6 +20,26 @@ from claude_launcher.utils import C
 
 class ProviderConfigError(Exception):
     """Raised when a provider's env var ($VAR ref) can't be resolved."""
+
+
+def _validate_provider_structure(data: Any) -> Dict[str, Any]:
+    """Validate that loaded provider data has the expected shape.
+
+    Ensures the top-level structure is a dict with a 'providers' key
+    containing a dict of provider name to config. Returns the providers
+    dict on success, raises TypeError on invalid structure.
+    """
+    if not isinstance(data, dict):
+        raise TypeError(
+            f"providers.json root must be a dict, got {type(data).__name__}"
+        )
+    providers = data.get("providers", {})
+    if not isinstance(providers, dict):
+        raise TypeError(
+            f"providers.json 'providers' must be a dict, "
+            f"got {type(providers).__name__}"
+        )
+    return providers
 
 
 def _resolve_env_value(value: str, provider_name: str) -> str:
@@ -81,6 +101,16 @@ def load_providers() -> Dict[str, Any]:
         )
         sys.exit(1)
 
+    # Validate top-level structure before accessing fields
+    try:
+        providers = _validate_provider_structure(data)
+    except TypeError as e:
+        print(
+            f"  {C.RED}Error: providers.json structure is invalid: {e}{C.NC}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Version guard: coerce to int, warn on non-integer
     try:
         int(data.get("version", 1))  # validate, but value not yet used
@@ -91,5 +121,4 @@ def load_providers() -> Dict[str, Any]:
             file=sys.stderr,
         )
 
-    providers = data.get("providers", {})
-    return cast(Dict[str, Any], providers)
+    return providers

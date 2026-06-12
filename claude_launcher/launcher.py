@@ -132,6 +132,16 @@ def _wait_for_lm_studio() -> bool:
 # -- Launch modes ----------------------------------------------------
 
 
+def _validate_string_list(val: Any, name: str = "claude_args") -> List[str]:
+    """Validate that a value is a list of strings (runtime type guard)."""
+    if not isinstance(val, list):
+        raise TypeError(f"{name} must be a list, got {type(val).__name__}")
+    for i, item in enumerate(val):
+        if not isinstance(item, str):
+            raise TypeError(f"{name}[{i}] must be a string, got {type(item).__name__}")
+    return val
+
+
 def _run_claude(claude_args: List[str]) -> int:
     """Launch claude subprocess.
 
