@@ -49,20 +49,40 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 
 ## Installation
 
-### macOS & Linux
+### Quick User Install (macOS & Linux)
+
+For everyday use — no Python tooling required beyond `python3`:
 
 ```bash
 git clone https://github.com/moodyreplicant/claude-launcher-plus.git
 cd claude-launcher-plus
-./install.sh   # installs to ~/.local/bin/claude-launcher-plus
+bash install.sh              # user install (default)
 ```
 
-The installer:
-- Checks Python 3.6+ is available
-- Detects and migrates from the old bash-based launcher
-- Offers to add `~/.local/bin` to your PATH
-- Creates a `clp` alias in your shell config
-- Copies the providers.json template (only if none exists)
+Installs:
+- The launcher package to `~/.local/share/claude-launcher-plus/`
+- A wrapper script at `~/.local/bin/claude-launcher-plus`
+- Optionally sets up the `clp` alias and adds to PATH
+
+No `pipenv`, no virtualenv — runs directly with your system Python.
+
+### Developer Install
+
+For contributing, testing, or modifying the launcher:
+
+```bash
+git clone https://github.com/moodyreplicant/claude-launcher-plus.git
+cd claude-launcher-plus
+bash install.sh --dev        # developer install
+```
+
+The `--dev` flag additionally:
+- Installs all Python dependencies via `pipenv install --dev`
+- Sets up pre-commit hooks (`pre-commit install`)
+- Creates a pipenv-aware wrapper script
+
+After a dev install, run `pipenv run python3 claude-launcher-plus.py` or
+use the wrapper at `~/.local/bin/claude-launcher-plus`.
 
 ### Windows
 
@@ -84,14 +104,6 @@ copy claude-launcher-plus.bat %LOCALAPPDATA%\Programs\claude-launcher-plus\
 ```
 
 Then add the folder to your PATH, or run via the `.bat` wrapper.
-
-### Manual Install (any platform)
-
-```bash
-# Requires pipenv environment (see Development section)
-pipenv install --dev
-pipenv run python3 claude-launcher-plus.py   # interactive menu
-```
 
 ---
 
@@ -314,31 +326,64 @@ The uninstaller will:
 
 ## Development
 
-### Project Structure
-
-The launcher is organized as a Python package under `claude_launcher/`:
-
-```
-claude-launcher-plus.py     # Entry point shim (delegates to package)
-claude_launcher/
-  __init__.py               # Version constant
-  cli.py                    # Argument parsing and dispatch
-  config.py                 # Settings management, path constants
-  launcher.py               # Launch modes, LM Studio client, status, menu
-  logger.py                 # Structured logging (JSON + human-readable)
-  providers.py              # Provider config loading, $VAR resolution, schema validation
-  utils.py                  # Color helpers, atomic write, input sanitization, file locking
-tests/                      # 120+ tests (pytest + coverage)
-```
-
-### Setting Up a Dev Environment
+### Quick Start (after `install.sh --dev`)
 
 ```bash
-pipenv install --dev
-pipenv run pre-commit install  # installs lint hooks
-pipenv run pytest tests/       # run tests
-pipenv run mypy claude_launcher/  # type check
+# Activate the dev environment
+pipenv shell
+
+# Or run individual commands
+pipenv run python3 claude-launcher-plus.py --dry-run  # test the launcher
+pipenv run pytest tests/                               # run all 123 tests
+pipenv run mypy claude_launcher/                       # static type check (0 errors)
+pipenv run pre-commit run --all-files                  # run all lint hooks
 ```
+
+### Project Structure
+
+```
+claude-launcher-plus.py     # Entry point shim (→ claude_launcher.cli:main)
+claude_launcher/
+  __init__.py               # VERSION constant
+  cli.py                    # Argument parsing, dispatch, dry-run
+  config.py                 # Settings load/save, path constants, directory permissions
+  launcher.py               # Launch modes, LM Studio client, status, interactive menu
+  logger.py                 # Structured logging: JSON + human-readable, rotation, secret redaction
+  providers.py              # Provider config, $VAR resolution, JSON Schema validation
+  utils.py                  # Color helpers, atomic write, input sanitization, file locking
+providers.schema.json       # JSON Schema for providers.json
+tests/                      # 123 tests across 9 test files
+  test_cli.py               # CLI argument parsing
+  test_config.py            # Settings management, permissions
+  test_integration.py       # End-to-end launch workflows (mocked)
+  test_launcher.py          # LM Studio, status, dependency checks
+  test_logger.py            # Formatters, file output, secret redaction
+  test_providers.py         # Schema validation, $VAR resolution
+  test_utils.py             # Atomic write, safe read, checksums, file locking, colors
+```
+
+### Two Install Modes
+
+| Mode | Command | Pipenv | Pre-commit | Use case |
+|------|---------|--------|------------|----------|
+| **User** | `bash install.sh` | ❌ | ❌ | Everyday launcher use |
+| **Dev** | `bash install.sh --dev` | ✅ | ✅ | Contributing / testing |
+
+The user install copies the package to `~/.local/share/claude-launcher-plus/` and runs
+directly with `python3`. The dev install adds `pipenv`, virtualenv isolation,
+pre-commit hooks, and all dev dependencies.
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| `pipenv` over `requirements.txt` | Deterministic lock file with hash verification |
+| Standard library `urllib` instead of `requests` | Zero external runtime dependencies (besides `jsonschema`) |
+| `os.replace()` for atomic writes | Crash-safe file updates on all platforms |
+| `fcntl.flock` for file locking | Advisory locking prevents concurrent write corruption |
+| `$VAR` env-var references | API keys stay in environment, never in config files |
+| `NO_COLOR` compliance | Respects the no-color.org convention |
+| JSON Schema validation | Runtime validation of `providers.json` with clear error messages |
 
 ### Running Tests
 
