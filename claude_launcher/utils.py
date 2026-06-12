@@ -71,22 +71,24 @@ def FileLock(lock_path: Path, timeout: float = 5.0) -> Iterator[None]:
         return
 
     lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    deadline = time.monotonic() + timeout
+    locked = False
     try:
-        deadline = time.monotonic() + timeout
         while True:
             try:
                 fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                locked = True
                 break  # lock acquired
             except (IOError, OSError):
                 if time.monotonic() >= deadline:
-                    os.close(lock_fd)
                     raise TimeoutError(
                         f"Could not acquire lock for {lock_path} " f"within {timeout}s"
                     )
                 time.sleep(0.05)
         yield
     finally:
-        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        if locked:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
 
 
