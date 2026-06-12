@@ -47,7 +47,15 @@ from claude_launcher.providers import (
     _resolve_provider_cfg,
     load_providers,
 )
-from claude_launcher.utils import C, _is_interactive, confirm_launch, pick_from_list
+from claude_launcher.utils import (
+    C,
+    _is_interactive,
+    confirm_launch,
+    pick_from_list,
+    sanitize_env_var_name,
+    sanitize_provider_name,
+    sanitize_url,
+)
 
 logger = get_logger("launcher")
 
@@ -322,16 +330,38 @@ def _first_run_wizard() -> None:
     """Interactively build a minimal providers.json v2."""
     print(f"\n  {C.BOLD}── First-run provider setup ──{C.NC}\n")
     try:
-        name = input("  Provider name (e.g. Deepseek): ").strip()
-        if not name:
+        raw_name = input("  Provider name (e.g. Deepseek): ").strip()
+        if not raw_name:
             print("  Aborted.")
             return
-        base = input("  API base URL [https://api.deepseek.com/anthropic]: ").strip()
-        if not base:
+        try:
+            name = sanitize_provider_name(raw_name)
+        except ValueError as e:
+            print(f"  {C.RED}{e}{C.NC}")
+            return
+
+        raw_base = input(
+            "  API base URL [https://api.deepseek.com/anthropic]: "
+        ).strip()
+        if not raw_base:
             base = "https://api.deepseek.com/anthropic"
-        key_var = input("  Env var for API key [DEEPSEEK_API_KEY]: ").strip()
-        if not key_var:
+        else:
+            try:
+                base = sanitize_url(raw_base)
+            except ValueError as e:
+                print(f"  {C.RED}{e}{C.NC}")
+                return
+
+        raw_key = input("  Env var for API key [DEEPSEEK_API_KEY]: ").strip()
+        if not raw_key:
             key_var = "DEEPSEEK_API_KEY"
+        else:
+            try:
+                key_var = sanitize_env_var_name(raw_key)
+            except ValueError as e:
+                print(f"  {C.RED}{e}{C.NC}")
+                return
+
         model = input("  Default model [deepseek-v4-pro[1m]]: ").strip()
         if not model:
             model = "deepseek-v4-pro[1m]"

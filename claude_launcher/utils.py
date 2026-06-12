@@ -9,6 +9,9 @@ __all__ = [
     "atomic_write",
     "pick_from_list",
     "confirm_launch",
+    "sanitize_provider_name",
+    "sanitize_env_var_name",
+    "sanitize_url",
 ]
 
 import json
@@ -74,6 +77,62 @@ def atomic_write(path: Path, data: Dict[str, Any]) -> None:
 def _is_interactive() -> bool:
     """Check if stdin is a TTY (interactive terminal)."""
     return sys.stdin.isatty()
+
+
+# -- Input validation -------------------------------------------------
+
+
+def sanitize_provider_name(name: str) -> str:
+    """Validate and clean a provider name.
+
+    Accepts alphanumeric, spaces, hyphens, underscores, and dots.
+    Returns the stripped name, or raises ValueError if invalid.
+    """
+    stripped = name.strip()
+    if not stripped:
+        raise ValueError("Provider name cannot be empty")
+    if len(stripped) > 64:
+        raise ValueError("Provider name too long (max 64 characters)")
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-.")
+    if not all(c in allowed for c in stripped):
+        raise ValueError(
+            "Provider name can only contain letters, numbers, spaces, "
+            "hyphens, underscores, and dots"
+        )
+    return stripped
+
+
+def sanitize_env_var_name(name: str) -> str:
+    """Validate an environment variable name (e.g., DEEPSEEK_API_KEY).
+
+    Returns the uppercased, stripped name, or raises ValueError.
+    """
+    stripped = name.strip().upper()
+    if not stripped:
+        raise ValueError("Env var name cannot be empty")
+    if not stripped.replace("_", "").isalnum():
+        raise ValueError(
+            "Env var name can only contain uppercase letters, "
+            "digits, and underscores"
+        )
+    if not stripped[0].isalpha():
+        raise ValueError("Env var name must start with a letter")
+    return stripped
+
+
+def sanitize_url(url: str) -> str:
+    """Basic URL validation — checks structure, not reachability.
+
+    Accepts http/https URLs with a hostname.
+    """
+    stripped = url.strip().rstrip("/")
+    if not stripped.startswith(("http://", "https://")):
+        raise ValueError("URL must start with http:// or https://")
+    # Ensure there's at least a hostname after the scheme
+    rest = stripped.split("://", 1)[1]
+    if not rest or "." not in rest and ":" not in rest and rest != "localhost":
+        raise ValueError("URL must contain a valid hostname")
+    return stripped
 
 
 def pick_from_list(title: str, items: List[str]) -> Optional[int]:
