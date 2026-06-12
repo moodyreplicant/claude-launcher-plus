@@ -7,20 +7,46 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  validate:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-      - name: Python syntax
-        run: python3 -m py_compile claude-launcher-plus.py
-      - name: providers.json validity
-        run: python3 -m json.tool providers.json > /dev/null
-      - name: providers.schema.json validity
-        run: python3 -m json.tool providers.schema.json > /dev/null
-      - name: Shell syntax
-        run: |
-          bash -n install.sh
-          bash -n uninstall.sh
+          python-version: "3.12"
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Cache pipenv virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: pipenv-${{ runner.os }}-${{ hashFiles('Pipfile.lock') }}
+
+      - name: Install dependencies
+        run: pipenv install --dev
+
+      - name: Lint — black
+        run: pipenv run black --check .
+
+      - name: Lint — isort
+        run: pipenv run isort --check-only .
+
+      - name: Lint — flake8
+        run: pipenv run flake8 .
+
+      - name: Type check — mypy
+        run: pipenv run mypy --strict .
+
+      - name: Security — bandit
+        run: pipenv run bandit -r .
+
+      - name: Security — safety
+        run: pipenv run safety check --full-report
+
+      - name: Test — pytest
+        run: pipenv run pytest tests/ -v
