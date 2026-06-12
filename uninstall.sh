@@ -45,7 +45,10 @@ if [[ ! -f "$TARGET" ]]; then
     exit 0
 fi
 
-installed_version=$(sed -n 's/^VERSION *= *"\([^"]*\)".*/\1/p' "$TARGET" 2>/dev/null || echo "unknown")
+installed_version="unknown"
+if [[ -f "$VERSION_FILE" ]]; then
+    installed_version=$(head -n1 "$VERSION_FILE" 2>/dev/null || echo "unknown")
+fi
 echo "Found claude-launcher-plus v$installed_version at $TARGET"
 echo ""
 
@@ -84,6 +87,20 @@ removed+=("$TARGET")
 if [[ -f "$VERSION_FILE" ]]; then
     rm "$VERSION_FILE"
     removed+=("$VERSION_FILE")
+fi
+
+# ------------------------------------------------------------------
+# OFFER PIPENV VIRTUALENV REMOVAL
+# ------------------------------------------------------------------
+if command -v pipenv &>/dev/null; then
+    echo ""
+    read -rp "Remove pipenv virtualenv (Python package sandbox)? [y/N] " answer </dev/tty
+    if [[ "$answer" =~ ^[Yy] ]]; then
+        pipenv --rm 2>/dev/null || true
+        removed+=("pipenv virtualenv")
+    else
+        kept+=("pipenv virtualenv")
+    fi
 fi
 
 # ------------------------------------------------------------------
