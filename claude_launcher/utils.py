@@ -7,6 +7,7 @@ __all__ = [
     "C",
     "NO_COLOR",
     "atomic_write",
+    "safe_read",
     "pick_from_list",
     "confirm_launch",
     "sanitize_provider_name",
@@ -14,12 +15,23 @@ __all__ = [
     "sanitize_url",
 ]
 
+import contextlib
+import hashlib
 import json
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, cast
+
+# Advisory file locking — available on POSIX (macOS/Linux), no-op elsewhere.
+try:
+    import fcntl
+
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
 
 # -- Terminal colors (no-color.org compliant) -----------------------
 
@@ -37,15 +49,103 @@ class C:
     NC = "" if NO_COLOR else "\033[0m"
 
 
+# -- Advisory file locking ------------------------------------------
+
+
+@contextlib.contextmanager
+def FileLock(lock_path: Path, timeout: float = 5.0) -> Iterator[None]:
+    """Advisory file lock context manager.
+
+    Uses ``fcntl.flock`` on POSIX systems; on platforms without fcntl
+    (e.g. Windows without Cygwin) the lock is a no-op.
+
+    Args:
+        lock_path: Path to the lock file (created if it doesn't exist).
+        timeout: Maximum seconds to wait for the lock (default 5.0).
+
+    Raises:
+        TimeoutError: If the lock cannot be acquired within *timeout*.
+    """
+    if not HAS_FCNTL:
+        yield
+        return
+
+    lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break  # lock acquired
+            except (IOError, OSError):
+                if time.monotonic() >= deadline:
+                    os.close(lock_fd)
+                    raise TimeoutError(
+                        f"Could not acquire lock for {lock_path} " f"within {timeout}s"
+                    )
+                time.sleep(0.05)
+        yield
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+
+
 # -- Atomic file write ----------------------------------------------
 
 
-def atomic_write(path: Path, data: Dict[str, Any]) -> None:
+def _check_writable(path: Path) -> None:
+    """Check that the parent directory is writable before writing.
+
+    Raises PermissionError if the directory doesn't allow write access.
+    """
+    parent = path.parent
+    if not parent.exists():
+        return  # will be created by atomic_write
+    if not os.access(str(parent), os.W_OK):
+        raise PermissionError(f"No write permission for directory: {parent}")
+
+
+def _write_checksum(path: Path, content: str) -> None:
+    """Write a SHA-256 checksum file alongside *path*.
+
+    The companion file is ``path.name + ".sha256"`` and contains the
+    hex digest of *content*.  Used by ``safe_read()`` to detect
+    corruption after the fact.
+    """
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    cs_path = path.with_suffix(path.suffix + ".sha256")
+    cs_path.write_text(digest, encoding="utf-8")
+    os.chmod(str(cs_path), 0o600)
+
+
+def _verify_checksum(path: Path, content: str) -> bool:
+    """Verify *content* against the stored checksum.
+
+    Returns True if the checksum matches or no checksum file exists.
+    Returns False if the checksum differs (indicating corruption).
+    """
+    cs_path = path.with_suffix(path.suffix + ".sha256")
+    if not cs_path.exists():
+        return True  # no checksum file = no corruption check
+    stored = cs_path.read_text(encoding="utf-8").strip()
+    actual = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    return stored == actual
+
+
+def atomic_write(
+    path: Path,
+    data: Dict[str, Any],
+    set_perms: bool = True,
+    write_checksum: bool = True,
+) -> None:
     """Write JSON atomically via tempfile + os.replace (crash-safe).
 
     Creates parent directories if they don't exist.
+    Sets restrictive permissions (0o600) by default.
+    Optionally writes a SHA-256 checksum for corruption detection.
     On failure, cleans up the temp file before re-raising.
     """
+    _check_writable(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = None
     try:
@@ -62,6 +162,11 @@ def atomic_write(path: Path, data: Dict[str, Any]) -> None:
         os.fsync(tmp.fileno())
         tmp.close()
         os.replace(tmp.name, str(path))
+        if set_perms:
+            os.chmod(str(path), 0o600)
+        if write_checksum:
+            content = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+            _write_checksum(path, content)
     except Exception:
         if tmp is not None:
             try:
@@ -69,6 +174,20 @@ def atomic_write(path: Path, data: Dict[str, Any]) -> None:
             except FileNotFoundError:
                 pass
         raise
+
+
+def safe_read(path: Path, verify: bool = True) -> Dict[str, Any]:
+    """Read a JSON file and optionally verify its checksum.
+
+    Returns the parsed data on success.
+    Raises ValueError if the checksum (when present) doesn't match.
+    Raises FileNotFoundError if the file doesn't exist.
+    Raises json.JSONDecodeError if the content is not valid JSON.
+    """
+    content = path.read_text(encoding="utf-8")
+    if verify and not _verify_checksum(path, content):
+        raise ValueError(f"Checksum mismatch for {path} — file may be corrupted")
+    return cast(Dict[str, Any], json.loads(content))
 
 
 # -- Interactive UI helpers -----------------------------------------
