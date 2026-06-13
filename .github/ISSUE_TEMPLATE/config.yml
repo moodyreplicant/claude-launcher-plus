@@ -1,0 +1,9 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/moodyreplicant/claude-launcher-plus/security/policy
+    about: Report a security issue privately — do not open a public ticket
+  - name: Discussion / question
+    url: https://github.com/moodyreplicant/claude-launcher-plus/discussions
+    about: Start a discussion or ask a question
