@@ -36,7 +36,7 @@ if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
 fi
 
 # Normalize install mode argument
-case "$1" in
+case "${1:-}" in
     --dev)     INSTALL_MODE="dev" ;;
     --user|"") INSTALL_MODE="user" ;;
     *)
@@ -114,6 +114,13 @@ do_user_install() {
     cp -r "$PACKAGE_DIR" "$INSTALL_DIR/"
     cp "$SOURCE_SCRIPT" "$INSTALL_DIR/"
 
+    # Install runtime Python dependency
+    echo "  Installing runtime dependency (jsonschema)..."
+    python3 -m pip install --user jsonschema 2>/dev/null || \
+    python3 -m pip install --break-system-packages --user jsonschema 2>/dev/null || {
+        echo "  ⚠  jsonschema install failed — install manually: pip3 install --user jsonschema"
+    }
+
     # Create wrapper script
     mkdir -p "$PREFIX"
     cat > "$TARGET" << WRAPPER
@@ -124,6 +131,7 @@ WRAPPER
     chmod +x "$TARGET"
 
     mkdir -p "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
     echo "$SOURCE_VERSION" > "$VERSION_FILE"
 
     # Verify
@@ -183,6 +191,7 @@ WRAPPER
     chmod +x "$TARGET"
 
     mkdir -p "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
     echo "$SOURCE_VERSION" > "$VERSION_FILE"
 
     # Verify
@@ -210,6 +219,7 @@ fi
 if [[ ! -f "$PROVIDERS_DEST" ]]; then
     if [[ -f "$SCRIPT_DIR/$PROVIDERS_TEMPLATE" ]]; then
         mkdir -p "$HOME/.claude"
+    chmod 700 "$HOME/.claude"
         cp "$SCRIPT_DIR/$PROVIDERS_TEMPLATE" "$PROVIDERS_DEST"
         echo "Template providers.json → $PROVIDERS_DEST"
         echo "  Edit it to add your API keys before using custom provider mode."
