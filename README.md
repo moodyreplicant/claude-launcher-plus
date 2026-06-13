@@ -472,3 +472,4 @@ MIT — see [LICENSE](LICENSE).
 - **[gui.codes](https://www.gui.codes/articles/claude-code-offline-local-models)** — Original blog post demonstrating Claude Code → LM Studio redirection
 - **[@gmotzespina](https://github.com/gmotzespina)** — Creator of the original `claude-launcher.sh`
 - This project extends the original with a unified multi-mode menu, custom provider support, static model selection, and a Python rewrite for cross-platform support
+- This project was human-orchestrated, with a team of AI agents assisting in every phase—from ideation and coding to testing and documentation.
