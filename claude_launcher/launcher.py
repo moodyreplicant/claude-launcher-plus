@@ -71,7 +71,7 @@ def _lm_studio_get(endpoint: str, timeout: int = 5) -> Optional[Dict[str, Any]]:
             f"{LM_STUDIO_URL}{endpoint}",
             headers={"User-Agent": "claude-launcher-plus"},
         )
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(req, timeout=timeout) as r:  # nosec B310
             return cast(Dict[str, Any], json.loads(r.read().decode()))
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         return None

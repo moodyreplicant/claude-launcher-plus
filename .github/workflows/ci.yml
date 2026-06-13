@@ -43,7 +43,7 @@ jobs:
         run: pipenv run mypy --strict .
 
       - name: Security — bandit
-        run: pipenv run bandit -r .
+        run: pipenv run bandit -r . -c .bandit
 
       - name: Security — safety
         run: pipenv run safety check --full-report
