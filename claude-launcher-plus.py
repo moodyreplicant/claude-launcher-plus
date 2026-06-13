@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""claude-launcher-plus v2.0.2 — Enhanced launcher for Claude Code CLI.
+"""claude-launcher-plus v3.0.0 — Enhanced launcher for Claude Code CLI.
 
 This is a thin entry point that delegates to the claude_launcher package.
 All logic lives in claude_launcher/ modules.

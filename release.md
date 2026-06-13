@@ -102,3 +102,55 @@ python3 claude-launcher-plus.py --dry-run custom  # validate
   is missing now prints the error and returns to the interactive menu rather
   than exiting. `_resolve_env_value()` raises `ProviderConfigError` instead of
   calling `sys.exit(1)`; `launch_custom()` catches it and returns gracefully.
+
+
+# Release v3.0.0 — Modular Package Refactor
+
+**Tag:** `v3.0.0`
+**Date:** 2026-06-13
+**Branch:** `feat/refactor` (→ `main`)
+
+## Summary
+
+Complete architectural rewrite from a 530-line monolithic `claude-launcher-plus.py`
+into a structured 7-module Python package (`claude_launcher/`) with 120+ tests.
+
+## What Changed
+
+### Architecture
+- **Modular package** — `claude_launcher/` with 7 focused modules (cli, config,
+  launcher, logger, providers, utils, __init__)
+- **Entry point preserved** — `claude-launcher-plus.py` is now a 9-line shim
+  that delegates to `claude_launcher.cli:main()`
+- **Phase 0 foundation** — `Pipfile` + `Pipfile.lock`, `setup.cfg` for all tools,
+  `.pre-commit-config.yaml` with 7 hooks, `pytest.ini`, `.gitignore`
+
+### New Features
+- **JSON Schema validation** — `providers.json` validated at load time
+  with clear error messages via `jsonschema.validate()`
+- **Structured logging** — JSON + human-readable formatters, file output with
+  rotation, `--verbose` flag
+- **Secret redaction** — `SecretRedactionFilter` masks API keys and tokens in logs
+- **Atomic writes with checksums** — SHA-256 companion files detect corruption,
+  `0o600` permissions, `FileLock` context manager
+- **Input sanitization** — provider name, env var name, and URL validators
+- **Env var sanitization** — detection of shell metacharacters in env values
+- **`--non-interactive` flag** — force non-TTY mode for scripts and CI
+- **`--allow-scripts` flag** — gates apiKeyHelper.sh creation
+- **`check-deps` command** — structured dependency reporting with install URLs
+- **Enhanced `--dry-run`** — execution plan per mode, validation pass/fail exit code
+- **`--user` / `--dev` installer modes** — lightweight user install vs full dev env
+- **`CODE_OF_CONDUCT.md` + `CONTRIBUTING.md`** — project governance
+
+### Quality
+- **123 tests** across 9 test files (up from 0)
+- **mypy --strict: 0 errors** on 7 modules (down from 13)
+- **Coverage**: 74% total, 90–100% on critical modules
+- **All linting tools**: black, isort, flake8, bandit, safety — all green
+
+### Backward Compatibility
+- Entry point `claude-launcher-plus.py` unchanged
+- All CLI subcommands (`local`, `cloud`, `custom`, `status`, etc.) unchanged
+- `providers.json` v1 and v2 formats both supported
+- `settings.json` format unchanged
+- Old bash launcher auto-detected and migrated by installer

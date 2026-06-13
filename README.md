@@ -6,7 +6,7 @@
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
 
-> **v2.0.2** — Rewritten in Python with a modular package structure, 7 modules, and 120+ tests. Features JSON Schema validation, structured logging, checksum-verified atomic writes, secret redaction, and full non-interactive mode for CI.
+> **v3.0.0** — Modular Python package with 7 modules and 120+ tests. JSON Schema validation, structured logging, checksum-verified atomic writes, secret redaction, non-interactive CI mode, and full developer toolchain.
 
 <p align="center">
   <a href="clp.png">
@@ -23,7 +23,7 @@ Claude Code normally requires an Anthropic API key or OAuth login. The original 
 - Static model selection so you can switch between multiple models per provider without editing files
 - DeepSeek and OpenRouter support out of the box
 - CLI subcommands for scripting and automation
-- **v2.0.2:** Modular Python package, 120+ test suite, JSON Schema validation, structured logging, atomic writes with corruption detection, secret redaction, `--non-interactive` flag, `check-deps` command, `--allow-scripts` gate
+- **v3.0.0:** Modular Python package, 120+ test suite, JSON Schema validation, structured logging, atomic writes with corruption detection, secret redaction, `--non-interactive` flag, `check-deps` command, `--allow-scripts` gate, CODE_OF_CONDUCT + CONTRIBUTING guidelines
 
 ---
 
@@ -407,7 +407,7 @@ pipenv run pytest tests/ --cov=claude_launcher/  # with coverage
 
 ### Migration from Single-File Version
 
-If you have the old single-file launcher (pre-2.0.2), the git history preserves the
+If you have the old single-file launcher (pre-3.0.0), the git history preserves the
 original code at earlier commits. The package structure (`claude_launcher/`) was
 introduced in Phase 1 of the refactor. The entry point `claude-launcher-plus.py`
 remains as a thin shim for backward compatibility.
