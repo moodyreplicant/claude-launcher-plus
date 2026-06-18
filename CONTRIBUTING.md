@@ -1,4 +1,4 @@
-# Contributing to Claude Code Launcher Plus
+# Contributing to Claude Launcher Plus
 
 Thank you for considering contributing! This document outlines how to set up a development environment, run tests, and submit changes.
 

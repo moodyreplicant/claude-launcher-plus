@@ -456,7 +456,7 @@ def _first_run_wizard() -> None:
 
 def show_status() -> None:
     """Display current configuration and health status."""
-    print(f"{C.BLUE}{C.BOLD}📊 Claude Code Launcher — Status{C.NC}\n")
+    print(f"{C.BLUE}{C.BOLD}📊 Claude Launcher Plus — Status{C.NC}\n")
     print_lm_studio_status()
 
     base = os.environ.get("ANTHROPIC_BASE_URL", "")
@@ -559,7 +559,7 @@ def interactive_menu() -> None:
     while True:
         try:
             print(f"\n{C.BOLD}┌─────────────────────────────────────┐{C.NC}")
-            print(f"{C.BOLD}│     Claude Code Launcher  🚀        │{C.NC}")
+            print(f"{C.BOLD}│      Claude Launcher Plus 🚀       │{C.NC}")
             print(f"{C.BOLD}└─────────────────────────────────────┘{C.NC}\n")
             print_lm_studio_status()
             print(f"\n  {C.BOLD}1){C.NC}  🖥  Local mode (LM Studio)")

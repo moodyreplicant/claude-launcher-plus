@@ -1,4 +1,4 @@
-# Claude Code Launcher Plus
+# Claude Launcher Plus
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)]()
@@ -11,11 +11,11 @@
 
 An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with support for **local** (LM Studio), **cloud** (Anthropic OAuth), and **custom provider** modes (DeepSeek, OpenRouter, or any Anthropic-compatible API).
 
-> **v3.0.0** — Modular Python package with 7 modules and 120+ tests. JSON Schema validation, structured logging, checksum-verified atomic writes, secret redaction, non-interactive CI mode, and full developer toolchain.
+> **v3.1.0** — Naming consistency, SHA-256 checksums in releases, and branding cleanup.
 
 <p align="center">
   <a href="clp.png">
-    <img src="clp.png" alt="Claude Code Launcher Plus — interactive menu" width="680">
+    <img src="clp.png" alt="Claude Launcher Plus — interactive menu" width="680">
   </a>
 </p>
 
@@ -23,12 +23,12 @@ An enhanced launcher for [Claude Code](https://docs.anthropic.com/en/docs/claude
 
 Claude Code normally requires an Anthropic API key or OAuth login. The original [claude-code-offline-local-models](https://www.gui.codes/articles/claude-code-offline-local-models) guide by [@gmotzespina](https://github.com/gmotzespina) showed how to redirect Claude Code to a local LM Studio instance — unlocking offline use and freedom from API rate limits.
 
-**Claude Code Launcher Plus** builds on that foundation, adding:
+**Claude Launcher Plus** builds on that foundation, adding:
 - A unified menu for local, cloud, and custom provider modes
 - Static model selection so you can switch between multiple models per provider without editing files
 - DeepSeek and OpenRouter support out of the box
 - CLI subcommands for scripting and automation
-- **v3.0.0:** Modular Python package, 120+ test suite, JSON Schema validation, structured logging, atomic writes with corruption detection, secret redaction, `--non-interactive` flag, `check-deps` command, `--allow-scripts` gate, CODE_OF_CONDUCT + CONTRIBUTING guidelines
+- **v3.1.0:** Naming consistency, SHA-256 checksums in releases, branding cleanup
 
 ---
 

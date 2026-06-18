@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
-LOGGER_NAME = "claude-launcher"
+LOGGER_NAME = "claude-launcher-plus"
 LOG_DIR = Path.home() / ".claude" / "logs"
 
 

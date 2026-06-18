@@ -59,7 +59,7 @@ class TestStatus:
         ):
             show_status()
         captured = capsys.readouterr()
-        assert "Claude Code Launcher" in captured.out
+        assert "Claude Launcher Plus" in captured.out
 
     def test_list_providers_empty(self) -> None:
         """list_providers exits with code 1 when no providers."""
