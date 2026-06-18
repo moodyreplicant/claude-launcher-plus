@@ -1,3 +1,42 @@
+# Release v3.1.1 — argparse passthrough fix
+
+**Tag:** `v3.1.1`
+**Date:** 2026-06-18
+**Branch:** `fix/argparse-allow-scripts` → `main`
+
+## Summary
+
+Fixes two symptoms of a single argparse bug where `argparse.REMAINDER`
+greedily consumed CLP flags (like `--allow-scripts`) when they appeared
+*after* the positional mode argument, shunting them into the claude
+subprocess pass-through args.
+
+## Changes
+
+### Bug fixes
+- **`--allow-scripts` consumed correctly regardless of position.** Switched
+  from `nargs=argparse.REMAINDER` to `nargs="*"` + `parse_known_args()` so
+  that known optional flags are recognised wherever they appear. This fixes
+  two visible symptoms:
+  - `clp local --allow-scripts` no longer prints *"Note: --allow-scripts
+    not set. Local mode key helper not written."*
+  - The `--allow-scripts` flag is no longer passed through to the `claude`
+    subprocess, which previously rejected it as *"error: unknown option
+    '--allow-scripts'"*.
+- **Unknown tokens still forwarded.** Any genuinely unknown flags or
+  positional leftovers are merged into the pass-through list via
+  `args.claude_args + unknown`, so forwarding to `claude` continues
+  to work.
+
+### Verification
+- `clp local --allow-scripts` — flag consumed, key helper written, claude
+  launched without errors
+- `clp --dry-run local` — pass-through args clean, no leakage
+- 120/123 tests pass (3 pre-existing LM Studio online/offline tests
+  require LM Studio to be stopped)
+
+---
+
 # Release v3.1.0 — Naming Consistency + SHA-256 Checksums
 
 **Tag:** `v3.1.0`
