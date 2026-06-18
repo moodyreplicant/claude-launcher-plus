@@ -559,7 +559,7 @@ def interactive_menu() -> None:
     while True:
         try:
             print(f"\n{C.BOLD}┌─────────────────────────────────────┐{C.NC}")
-            print(f"{C.BOLD}│      Claude Launcher Plus 🚀       │{C.NC}")
+            print(f"{C.BOLD}│      Claude Launcher Plus 🚀        │{C.NC}")
             print(f"{C.BOLD}└─────────────────────────────────────┘{C.NC}\n")
             print_lm_studio_status()
             print(f"\n  {C.BOLD}1){C.NC}  🖥  Local mode (LM Studio)")
