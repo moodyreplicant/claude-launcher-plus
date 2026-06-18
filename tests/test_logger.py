@@ -105,18 +105,23 @@ class TestJsonFormatter:
 class TestConfigureLogging:
     """configure_logging() sets up handlers correctly."""
 
-    def test_verbose_sets_debug_level(self) -> None:
-        """verbose=True sets logger to DEBUG."""
+    def test_verbose_shows_debug_messages(self, capsys: Any) -> None:
+        """verbose=True shows DEBUG messages in stdout."""
         configure_logging(verbose=True)
         logger = get_logger("verbose-test")
-        assert logger.isEnabledFor(logging.DEBUG) is True
+        logger.debug("debug message")
+        captured = capsys.readouterr()
+        assert "debug message" in captured.out
 
-    def test_default_is_info(self) -> None:
-        """Default (verbose=False) sets logger to INFO."""
+    def test_default_suppresses_info(self, capsys: Any) -> None:
+        """Default (verbose=False) suppresses INFO from stdout."""
         configure_logging(verbose=False)
-        logger = get_logger("info-test")
-        assert logger.isEnabledFor(logging.INFO) is True
-        assert logger.isEnabledFor(logging.DEBUG) is False
+        logger = get_logger("suppress-test")
+        logger.info("should not appear")
+        logger.warning("should appear")
+        captured = capsys.readouterr()
+        assert "should not appear" not in captured.out
+        assert "should appear" in captured.out
 
     def test_log_file_creates_file(self, tmp_path: Path) -> None:
         """log_file creates a file at the specified path."""

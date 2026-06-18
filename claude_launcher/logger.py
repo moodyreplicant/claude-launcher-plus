@@ -108,19 +108,19 @@ def configure_logging(
     """Configure the root logger.
 
     Args:
-        verbose: Enable DEBUG-level logging (default: INFO).
+        verbose: Enable DEBUG-level logging (default: WARNING).
         log_file: Path to an optional log file. If not provided, logs
             go to stdout only. Log files automatically rotate at 5 MB.
         json_output: If True, emit JSON-formatted log lines instead of
             human-readable text.
     """
     logger = logging.getLogger(LOGGER_NAME)
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    logger.setLevel(logging.DEBUG)  # always capture everything; handlers control output
     logger.handlers.clear()
 
     # Always log to stdout
     stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    stdout_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
     stdout_handler.setFormatter(JsonFormatter() if json_output else HumanFormatter())
     stdout_handler.addFilter(SecretRedactionFilter())
     logger.addHandler(stdout_handler)
