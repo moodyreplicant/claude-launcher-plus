@@ -51,8 +51,8 @@ jobs:
       - name: Security — bandit
         run: pipenv run bandit -r . -c .bandit
 
-      - name: Security — safety
-        run: pipenv run safety check --full-report
+      - name: Security — pip-audit
+        run: pipenv run pip-audit
 
       - name: Test — pytest
         run: pipenv run pytest tests/ -v
