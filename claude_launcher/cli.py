@@ -99,10 +99,14 @@ def main() -> None:
     )
     parser.add_argument(
         "claude_args",
-        nargs=argparse.REMAINDER,
-        help="Arguments passed through to 'claude' (use -- to separate)",
+        nargs="*",
+        help="Arguments passed through to 'claude'",
     )
-    args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+    # unknown contains tokens that argparse didn't recognise as known flags
+    # (including positional leftovers after mode). Merge them into claude_args
+    # so they get forwarded to the claude subprocess.
+    ca_unknown = args.claude_args + unknown
 
     configure_logging(verbose=args.verbose)
     logger.debug("started with args: %s", sys.argv[1:])
@@ -171,7 +175,7 @@ def main() -> None:
             print(f"  claude:      {C.GREEN}✓ found{C.NC}")
 
         # 3. Claude args pass-through
-        ca = args.claude_args
+        ca = ca_unknown
         if ca and ca[0] == "--":
             ca = ca[1:]
         if ca:
@@ -187,7 +191,7 @@ def main() -> None:
         return
 
     # Strip leading '--' separator if present
-    ca = args.claude_args
+    ca = ca_unknown
     if ca and ca[0] == "--":
         ca = ca[1:]
 
