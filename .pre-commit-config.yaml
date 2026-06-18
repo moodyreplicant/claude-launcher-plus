@@ -34,9 +34,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: safety
-        name: safety
-        entry: pipenv run safety check --full-report
+      - id: pip-audit
+        name: pip-audit
+        entry: pipenv run pip-audit
         language: system
         pass_filenames: false
         always_run: true
