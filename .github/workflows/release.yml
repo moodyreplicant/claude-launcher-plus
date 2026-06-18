@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cat > checksums.txt << 'EOF'
+          # SHA-256 checksums for claude-launcher-plus v${{ github.ref_name }}
+          # Generated: $(date --iso-8601=seconds)
+          # Usage: sha256sum -c checksums.txt
+          EOF
+          for f in \
+            install.sh \
+            uninstall.sh \
+            install.ps1 \
+            claude-launcher-plus.py \
+            claude-launcher-plus.bat \
+            providers.schema.json
+          do
+            if [ -f "$f" ]; then
+              sha256sum "$f" >> checksums.txt
+            fi
+          done
+          echo ""
+          echo "=== checksums.txt ==="
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ github.ref_name }}"
+          body_path: release.md
+          files: |
+            checksums.txt
+            install.sh
+            uninstall.sh
+            install.ps1
+            claude-launcher-plus.py
+            claude-launcher-plus.bat
+            providers.schema.json
+          fail_on_unmatched_files: false

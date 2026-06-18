@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from claude_launcher.logger import (
+    LOGGER_NAME,
     HumanFormatter,
     JsonFormatter,
     configure_logging,
@@ -20,12 +21,12 @@ class TestGetLogger:
     def test_root_logger_name(self) -> None:
         """Root logger has the expected namespace."""
         logger = get_logger()
-        assert logger.name == "claude-launcher"
+        assert logger.name == LOGGER_NAME
 
     def test_child_logger_name(self) -> None:
-        """Child logger follows the claude-launcher.name pattern."""
+        """Child logger follows the {namespace}.name pattern."""
         logger = get_logger("test")
-        assert logger.name == "claude-launcher.test"
+        assert logger.name == f"{LOGGER_NAME}.test"
 
     def test_logger_produces_output(self, capsys: Any) -> None:
         """Logger output is captured correctly."""

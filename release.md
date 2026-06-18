@@ -1,3 +1,35 @@
+# Release v3.1.0 — Naming Consistency + SHA-256 Checksums
+
+**Tag:** `v3.1.0`
+**Date:** 2026-06-18
+**Branch:** `chore/releases` → `main`
+
+## Summary
+
+Branding cleanup and release automation improvements. All display names
+standardized to "Claude Launcher Plus".
+
+## Changes
+
+### Naming
+- **Interactive menu header** now reads "Claude Launcher Plus" (was "Claude Code Launcher")
+- **Status header** now reads "Claude Launcher Plus" (was "Claude Code Launcher")
+- **Logger namespace** changed from "claude-launcher" to "claude-launcher-plus"
+- **README** title changed from "Claude Code Launcher Plus" to "Claude Launcher Plus"
+- **CONTRIBUTING.md** header updated to match
+
+### Release automation
+- **New GitHub Actions release workflow** — generates SHA-256 checksums for
+  install scripts and source files on tag push
+- **Checksums published** alongside each GitHub Release for integrity verification
+
+## Migration
+
+The logger namespace change means anyone parsing log files by logger name
+will need to update filters from "claude-launcher" to "claude-launcher-plus".
+
+---
+
 # Release v2.0.0 — Python Rewrite
 
 **Tag:** `v2.0.0`

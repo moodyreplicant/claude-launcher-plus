@@ -5,4 +5,4 @@ Three modes: local (LM Studio), cloud (Anthropic OAuth), custom provider.
 
 __all__ = ["VERSION"]
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
