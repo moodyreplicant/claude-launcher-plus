@@ -18,7 +18,7 @@ jobs:
 
       - name: Generate SHA-256 checksums
         run: |
-          cat > checksums.txt << 'EOF'
+          cat > checksums.txt << EOF
           # SHA-256 checksums for claude-launcher-plus ${{ github.ref_name }}
           # Generated: $(date --iso-8601=seconds)
           # Usage: sha256sum -c checksums.txt
